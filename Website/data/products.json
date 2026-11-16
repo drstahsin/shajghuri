@@ -1,0 +1,806 @@
+[
+  {
+    "id": 1,
+    "name": "3Mini Love 18k Gold Bracelet",
+    "price": 200,
+    "description": "Exquisite 18k gold plated dainty charm bracelet featuring mini polished love hearts along an artisan delicate link chain. Anti-tarnish & waterproof.",
+    "category": "Bracelets",
+    "image": "/product-images/AIUL6483.PNG",
+    "featured": true,
+    "stock": 0,
+    "images": [
+      "/product-images/AIUL6483.PNG",
+      "/product-images/received_1428060606101547.jpeg",
+      "/product-images/IMG_9915.JPG"
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Amora Royal Purple Heart Crystal Pendant",
+    "price": 220,
+    "description": "A timeless touch of love. Lustrous gold chain crowned with a glowing amethyst purple heart crystal nestled in a sculpted golden heart bezel.",
+    "category": "Pendants",
+    "image": "/product-images/received_1527071975857646.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/received_1527071975857646.jpeg",
+      "/product-images/NYOG6370.JPG",
+      "/product-images/IMG_9925.JPG"
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Classic Love  Bracelet",
+    "price": 220,
+    "description": "Layered elegance in pure gold tone. Pairing a sleek herringbone snake chain with a delicate beaded link chain accented with cursive Love lettering. ",
+    "category": "Bracelets",
+    "image": "/product-images/received_2566050870475385.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/received_2566050870475385.jpeg",
+      "/product-images/received_1422971313011772.jpeg",
+      "/product-images/received_1075155505462245.jpeg"
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Inter Lock Flower 18k Gold Bracelet",
+    "price": 250,
+    "description": "Parisian-inspired high jewelry bracelet featuring cutout and solid quatrefoil clover motifs with shimmering cubic zirconia stations.",
+    "category": "Bracelets",
+    "image": "/product-images/received_1795952614632584.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/received_1795952614632584.jpeg",
+      "/product-images/bracelet-quatrefoil-wrist.jpeg",
+      "/product-images/IMG_9918.JPG"
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Small Fresh Titanium Steel Versatile Pearl Necklace",
+    "price": 200,
+    "description": "Modern organic molten gold pendant framing an iridescent freshwater pearl on a shimmering gold chain.",
+    "category": "Necklaces",
+    "image": "/product-images/received_1301556105419293.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/received_1301556105419293.jpeg",
+      "/product-images/received_27914289308246410.jpeg",
+      "/product-images/received_1298558419040534.jpeg",
+      "/product-images/IMG_9922.JPG"
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Perfume Bottle Shape Pearl Necklace",
+    "price": 220,
+    "description": "A single luminescent teardrop freshwater pearl suspended beneath a faceted geometric gold bead on a fine link chain.",
+    "category": "Necklaces",
+    "image": "/product-images/received_2145431709699951.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/received_2145431709699951.jpeg",
+      "/product-images/received_1114150801199334.jpeg",
+      "/product-images/IMG_9923.JPG"
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Zirconia Full Diamond FIve-Petal Flower Necklace",
+    "price": 280,
+    "description": "Radiant floral centerpiece crafted with sparkling marquise crystal petals clustered around a brilliant round center stone.",
+    "category": "Necklaces",
+    "image": "/product-images/received_1118074990632229.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/received_1118074990632229.jpeg",
+      "/product-images/received_1864939654933584.jpeg",
+      "/product-images/IMG_9920.JPG"
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Multi Square Multi Circle Necklace",
+    "price": 280,
+    "description": "Boho-chic choker chain adorned with rhythmically spaced falling droplet charms that capture and reflect light.",
+    "category": "Necklaces",
+    "image": "/product-images/received_1118462734057139.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/received_1118462734057139.jpeg",
+      "/product-images/IMG_9924.JPG"
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Korean Pastel Butterfly & Heart Stud Set",
+    "price": 200,
+    "description": "Curated multi-piece ear styling collection including blush pink enamel butterflies, sweet hearts, lustrous pearl studs, and sparkling cubic zirconia miniatures.",
+    "category": "Earrings",
+    "image": "/product-images/Messenger_creation_82848A60-13AC-431D-B0D5-89CB27D3AB3B.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/Messenger_creation_82848A60-13AC-431D-B0D5-89CB27D3AB3B.jpeg",
+      "/product-images/IMG_9910.JPG"
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Seventeen Celestial Feather & Star Stud Set",
+    "price": 200,
+    "description": "Delicate silver and gold motif earring assortment featuring engraved feather quills, shining starbursts, open heart hoops, and micro crystal studs.",
+    "category": "Earrings",
+    "image": "/product-images/Messenger_creation_7845EF0F-03D9-403D-BE13-17B70A9E9474.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/Messenger_creation_7845EF0F-03D9-403D-BE13-17B70A9E9474.jpeg",
+      "/product-images/IMG_9911.JPG"
+    ]
+  },
+  {
+    "id": 36,
+    "name": "Opaline Heart Bezel Silver Pendant Necklace",
+    "price": 180,
+    "description": "Ethereal translucent opaline heart cabochon encased in an ornate silver millgrain bezel.",
+    "category": "Pendants",
+    "image": "/product-images/IMG_E9857.JPG",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_E9857.JPG",
+      "/product-images/IMG_9227.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 37,
+    "name": "Ruby Teardrop Beaded Station Silver Necklace",
+    "price": 150,
+    "description": "Fine sterling silver beaded station chain carrying a faceted deep ruby red teardrop gem.",
+    "category": "Pendants",
+    "image": "/product-images/IMG_E9859.JPG",
+    "featured": true,
+    "stock": 2,
+    "images": [
+      "/product-images/IMG_E9859.JPG",
+      "/product-images/IMG_9225.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 38,
+    "name": "Crimson Solitaire Crown Bezel Silver Necklace",
+    "price": 150,
+    "description": "A vivid brilliant-cut crimson red crystal stone set in a sunburst crown bezel.",
+    "category": "Pendants",
+    "image": "/product-images/IMG_E9860.JPG",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_E9860.JPG",
+      "/product-images/IMG_9223.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 39,
+    "name": "Pink Butterfly Charm Sterling Silver Necklace",
+    "price": 150,
+    "description": "Artisan silver chain carrying a fluttering butterfly charm with soft pink enamel wings.",
+    "category": "Pendants",
+    "image": "/product-images/IMG_E9861.JPG",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_E9861.JPG",
+      "/product-images/IMG_9224.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 42,
+    "name": "Oxidized Silver Feather Earring",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9103.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9103.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 43,
+    "name": "Oxidized Silver Feather Earring",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9104.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9104.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 44,
+    "name": "Oxidized Silver Feather Earring",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9105.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9105.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 45,
+    "name": "Bohemian Turquoise Feather Earring",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9106.JPG.jpeg",
+    "featured": true,
+    "stock": 2,
+    "images": [
+      "/product-images/IMG_9106.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 46,
+    "name": "Bohemian Turquoise Feather Earring",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9107.JPG.jpeg",
+    "featured": true,
+    "stock": 2,
+    "images": [
+      "/product-images/IMG_9107.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 47,
+    "name": "Bohemian Turquoise Feather Earring",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9108.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9108.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 48,
+    "name": "Antique Silver Dangles Earrings",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9109.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9109.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 49,
+    "name": "Antique Silver Dangles Earrings",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9110.JPG.jpeg",
+    "featured": true,
+    "stock": 2,
+    "images": [
+      "/product-images/IMG_9110.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 50,
+    "name": "Floral Enamel Earrings",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9111.JPG.jpeg",
+    "featured": true,
+    "stock": 2,
+    "images": [
+      "/product-images/IMG_9111.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 51,
+    "name": "Floral Enamel Earrings",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9112.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9112.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 52,
+    "name": "Floral Enamel Earrings",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9113.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9113.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 53,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9130.JPG.jpeg",
+    "featured": true,
+    "stock": 0,
+    "images": [
+      "/product-images/IMG_9130.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 54,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9131.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9131.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 55,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9134.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9134.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 56,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9135.JPG.jpeg",
+    "featured": true,
+    "stock": 0,
+    "images": [
+      "/product-images/IMG_9135.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 57,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9137.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9137.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 58,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9139.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9139.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 59,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9140.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9140.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 60,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9141.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9141.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 61,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9142.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9142.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 62,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9143.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9143.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 63,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9144.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9144.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 64,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9145.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9145.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 65,
+    "name": "Shajghuri Mini Jhumka",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9146.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9146.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 66,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9147.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9147.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 67,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9149.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9149.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 68,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9150.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9150.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 69,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9153.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9153.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 70,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9154.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9154.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 71,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9155.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9155.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 72,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9156.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9156.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 73,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9157.JPG.jpeg",
+    "featured": true,
+    "stock": 0,
+    "images": [
+      "/product-images/IMG_9157.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 74,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9158.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9158.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 75,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9159.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9159.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 76,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9160.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9160.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 77,
+    "name": "Shajghuri Jhumka",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Jhumkas",
+    "image": "/product-images/IMG_9161.JPG.jpeg",
+    "featured": true,
+    "stock": 0,
+    "images": [
+      "/product-images/IMG_9161.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 78,
+    "name": "Long Butterfly Earring",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9179.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9179.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 79,
+    "name": "Silver Oxidized Dangle Earrings",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Earrings",
+    "image": "/product-images/IMG_9181.JPG.jpeg",
+    "featured": true,
+    "stock": 0,
+    "images": [
+      "/product-images/IMG_9181.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 80,
+    "name": "Butterfly Necklace",
+    "price": 120,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Necklaces",
+    "image": "/product-images/IMG_9182.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9182.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 82,
+    "name": "Pookie Necklace",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Necklaces",
+    "image": "/product-images/IMG_9200.JPG.jpeg",
+    "featured": true,
+    "stock": 0,
+    "images": [
+      "/product-images/IMG_9200.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 83,
+    "name": "U-Shaped Pearl Titanium Steel Necklace",
+    "price": 220,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Necklaces",
+    "image": "/product-images/received_2511793806312790.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/received_2511793806312790.jpeg",
+      "/product-images/received_1103106309359795.jpeg",
+      "/product-images/IMG_9202.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 84,
+    "name": "Blue Crystal Necklace",
+    "price": 150,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Necklaces",
+    "image": "/product-images/IMG_9217.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9217.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 85,
+    "name": "Butterfly Blue Necklace",
+    "price": 150,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Necklaces",
+    "image": "/product-images/IMG_9218.JPG.jpeg",
+    "featured": true,
+    "stock": 0,
+    "images": [
+      "/product-images/IMG_9218.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 86,
+    "name": "Blue Crystal Sqare Necklace",
+    "price": 150,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Necklaces",
+    "image": "/product-images/IMG_9219.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9219.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 87,
+    "name": "Ocean Blue Necklace ",
+    "price": 150,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Necklaces",
+    "image": "/product-images/IMG_9220.JPG.jpeg",
+    "featured": true,
+    "stock": 1,
+    "images": [
+      "/product-images/IMG_9220.JPG.jpeg"
+    ]
+  },
+  {
+    "id": 88,
+    "name": "Premium Chain Butterfly Nacklace ",
+    "price": 180,
+    "description": "Handcrafted artisan jewelry made with meticulous care. Authentic and timeless traditional design.",
+    "category": "Necklaces",
+    "image": "/product-images/IMG_9221.JPG.jpeg",
+    "featured": true,
+    "stock": 0,
+    "images": [
+      "/product-images/IMG_9221.JPG.jpeg"
+    ]
+  }
+]

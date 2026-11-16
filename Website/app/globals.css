@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Cherry Boogabear';
+  src: local('Cherry Boogabear'), local('Boogabear'), local('Cherry-Boogabear'), local('Boogabear-Regular');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --color-linen: #FBF9F7;
+  --color-paper: #FFFFFF;
+  --color-ink: #18181B;
+  --color-stone: #71717A;
+  --color-brass: #D4AF37;
+  --color-gold: #C59B27;
+  --color-rose: #FFF1F3;
+  --color-rose-border: #FFE4E8;
+  --color-meenakari: #E11D48;
+  --color-emerald: #059669;
+
+  --font-cherry: 'Cherry Boogabear', 'Boogabear', 'Cherry Swash', 'Boogaloo', 'Cherry Bomb One', cursive, sans-serif;
+  --font-brand: 'Cherry Boogabear', 'Boogabear', 'Cherry Swash', cursive, sans-serif;
+  --font-sans: 'Nunito Sans', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Cherry Boogabear', 'Cherry Swash', 'Georgia', serif;
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: #E4E4E7;
+  }
+
+  body {
+    background-color: var(--color-linen);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, .font-cherry, .font-brand {
+    font-family: var(--font-cherry);
+  }
+}
