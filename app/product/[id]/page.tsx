@@ -5,7 +5,7 @@ import { useAppContext } from "@/context/AppContext";
 import Image from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, ShoppingBag, Check, Star, Truck, ShieldCheck, HeartHandshake, Phone, MessageCircle, ChevronRight as ChevronNext } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShoppingBag, Check, Star, Truck, ShieldCheck, HeartHandshake, MessageCircle, ChevronRight as ChevronNext } from "lucide-react";
 import Link from "next/link";
 import { ProductCard } from "@/components/ProductCard";
 

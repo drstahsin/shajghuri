@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shajghuri
 
-## Getting Started
+Shajghuri is a Next.js storefront and admin dashboard for a Bangladesh ornaments business. The catalog is public; customer orders and admin functions are private.
 
-First, run the development server:
+## Local setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Install Node.js 20.9 or newer and run `npm install`.
+2. Copy `.env.example` to `.env.local`.
+3. Set `ADMIN_PASSWORD` to a private password with at least 14 characters. Set `ADMIN_SESSION_SECRET` to a separate random value with at least 32 characters.
+4. For local development, `DATABASE_URL` may be left blank. Local order data is kept in the ignored `data/orders.local.json` file.
+5. Run `npm run dev` and open `http://localhost:3000`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Vercel deployment and order storage
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Production requires a durable PostgreSQL database. Vercel's current Marketplace provides PostgreSQL integrations such as Neon; connect one to the Vercel project and set its pooled connection string as `DATABASE_URL`. The application creates its tables and seeds the catalog from `data/products.json` the first time it connects. **The storefront will not accept orders in production without `DATABASE_URL`.**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Set `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` in Vercel's project environment settings for Production and Preview. Use different credentials in Preview. Never add real values to Git or prefix secrets with `NEXT_PUBLIC_`.
 
-## Learn More
+To preserve existing local order history, connect the project to the new database before deployment and run `npm run db:migrate:orders` once. The script will copy local order records and will not change product stock. Keep the local file until the migration reports success, then remove the local copy when no longer needed.
 
-To learn more about Next.js, take a look at the following resources:
+Order confirmation and contact inquiry emails use SMTP. Set `EMAIL_USER` and `EMAIL_APP_PASSWORD` in the Vercel project settings to enable them. If SMTP is not configured, order placement still works and the admin can see orders; the contact form displays a delivery error and points customers to the published phone/email details.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Security behavior
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Admin APIs require a short-lived, signed, `httpOnly`, `SameSite=Strict` session cookie.
+- Customer order details can be fetched only with the random access token returned at checkout; the token is kept in the browser tab's session storage.
+- Order totals and item prices come from the server catalog. Stock is checked and updated in the same PostgreSQL transaction as the order.
+- Production order/catalog storage uses PostgreSQL. Local JSON order data is ignored by Git.
+- API requests are size-limited, validated, origin-checked for writes, and rate-limited. Production rate limits are stored in PostgreSQL.
+- Product images are restricted to local catalog assets. Standard security response headers are configured in `next.config.ts`.
 
-## Deploy on Vercel
+## Available commands
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` — start the development server
+- `npm run lint` — run ESLint
+- `npm run build` — build for production
+- `npm run db:migrate:orders` — import local order history into the configured database once

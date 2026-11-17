@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { useAppContext } from "@/context/AppContext";
 import { ProductCard } from "@/components/ProductCard";
 import {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Phone, Mail, MapPin, Truck, ShieldCheck, HeartHandshake, ArrowRight } from "lucide-react";
+import { Phone, Mail, MapPin, Truck, ShieldCheck, HeartHandshake } from "lucide-react";
 
 export function Footer() {
   return (

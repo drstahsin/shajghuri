@@ -1,31 +1,37 @@
 "use client";
 
-import { useState, useMemo, Suspense, useEffect } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { ProductCard } from "@/components/ProductCard";
-import { motion } from "framer-motion";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Filter, ChevronRight, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { ChevronRight, SlidersHorizontal, RotateCcw } from "lucide-react";
 
 function CollectionContent() {
   const { products } = useAppContext();
   const searchParams = useSearchParams();
+  const router = useRouter();
   
   const categoryParam = searchParams.get("category") || "All";
   const searchParam = searchParams.get("search") || "";
   
-  const [activeCategory, setActiveCategory] = useState(categoryParam);
-  const [searchTerm, setSearchTerm] = useState(searchParam);
+  const activeCategory = categoryParam;
+  const searchTerm = searchParam;
   const [priceSort, setPriceSort] = useState<"default" | "low-high" | "high-low">("default");
 
-  useEffect(() => {
-    if (categoryParam) setActiveCategory(categoryParam);
-  }, [categoryParam]);
-
-  useEffect(() => {
-    if (searchParam) setSearchTerm(searchParam);
-  }, [searchParam]);
+  const updateFilters = (updates: { category?: string; search?: string }) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (updates.category !== undefined) {
+      if (updates.category === "All") params.delete("category");
+      else params.set("category", updates.category);
+    }
+    if (updates.search !== undefined) {
+      if (!updates.search.trim()) params.delete("search");
+      else params.set("search", updates.search);
+    }
+    const query = params.toString();
+    router.replace(query ? `/collection?${query}` : "/collection", { scroll: false });
+  };
 
   const categories = ["All", ...Array.from(new Set(products.map((p) => p.category)))];
 
@@ -59,8 +65,7 @@ function CollectionContent() {
   }, [products, activeCategory, searchTerm, priceSort]);
 
   const resetFilters = () => {
-    setActiveCategory("All");
-    setSearchTerm("");
+    router.replace("/collection", { scroll: false });
     setPriceSort("default");
   };
 
@@ -96,7 +101,7 @@ function CollectionContent() {
           <SlidersHorizontal className="w-4 h-4 text-zinc-400 hidden sm:inline" />
           <select 
             value={priceSort}
-            onChange={(e) => setPriceSort(e.target.value as any)}
+            onChange={(e) => setPriceSort(e.target.value as "default" | "low-high" | "high-low")}
             className="bg-zinc-50 border border-zinc-200 text-xs font-semibold px-3.5 py-2 rounded-lg text-zinc-800 focus:outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer"
           >
             <option value="default">Sort by: Featured</option>
@@ -130,7 +135,7 @@ function CollectionContent() {
                   return (
                     <li key={cat}>
                       <button
-                        onClick={() => setActiveCategory(cat)}
+                        onClick={() => updateFilters({ category: cat })}
                         className={`w-full text-left px-3 py-2 rounded-lg font-medium transition-all flex items-center justify-between cursor-pointer ${
                           activeCategory.toLowerCase() === cat.toLowerCase()
                             ? "bg-rose-50 text-rose-700 font-bold"

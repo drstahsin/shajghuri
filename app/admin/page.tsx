@@ -12,9 +12,7 @@ function sanitizeImagePath(input: string): string {
   if (!clean) return "";
   const lower = clean.toLowerCase();
   
-  if (lower.startsWith("http://") || lower.startsWith("https://")) {
-    return clean;
-  }
+  if (lower.startsWith("http://") || lower.startsWith("https://")) return "";
 
   const piIdx = lower.lastIndexOf("product image/");
   const pisIdx = lower.lastIndexOf("product-images/");
@@ -31,6 +29,7 @@ function sanitizeImagePath(input: string): string {
   } else if (!clean.startsWith("/")) {
     clean = "/product-images/" + clean;
   }
+  if (clean !== "/brand-logo-bw.png" && !/^\/product-images\/[\p{L}\p{N}._() -]{1,180}$/u.test(clean)) return "";
   return clean;
 }
 
@@ -61,45 +60,26 @@ export default function AdminDashboard() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
-  // Check persistent admin access
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("shajghuri_admin_auth");
-      if (saved === "true") {
-        setIsAuthenticated(true);
-      }
-    } catch {
-      // ignore
-    }
+    fetch("/api/admin/auth", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => setIsAuthenticated(data.authenticated === true))
+      .catch(() => setIsAuthenticated(false));
   }, []);
 
   const fetchOrders = async () => {
     setOrdersLoading(true);
     try {
-      const res = await fetch("/api/orders");
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setOrders(data);
-      } else {
-        try {
-          const backupRaw = localStorage.getItem("shajghuri_orders_backup");
-          if (backupRaw) {
-            const backupList = JSON.parse(backupRaw);
-            if (Array.isArray(backupList) && backupList.length > 0) {
-              setOrders(backupList);
-            }
-          }
-        } catch {}
+      const res = await fetch("/api/admin/orders", { cache: "no-store" });
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        return;
       }
+      if (!res.ok) throw new Error("Unable to load orders.");
+      const data = await res.json();
+      if (Array.isArray(data)) setOrders(data);
     } catch (err) {
       console.error("Failed to fetch orders:", err);
-      try {
-        const backupRaw = localStorage.getItem("shajghuri_orders_backup");
-        if (backupRaw) {
-          const backupList = JSON.parse(backupRaw);
-          if (Array.isArray(backupList)) setOrders(backupList);
-        }
-      } catch {}
     } finally {
       setOrdersLoading(false);
     }
@@ -107,40 +87,44 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchOrders();
+      const timer = window.setTimeout(() => { void fetchOrders(); }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [isAuthenticated]);
 
-  const handleLogin = (e?: React.FormEvent, bypassPassword = false) => {
-    if (e) e.preventDefault();
-    if (bypassPassword || password === "shajghuri2024" || password.trim() === "") {
-      setIsAuthenticated(true);
-      try {
-        localStorage.setItem("shajghuri_admin_auth", "true");
-      } catch {
-        // ignore
-      }
-    } else {
-      alert("Incorrect password. Please use: shajghuri2024");
-    }
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      localStorage.removeItem("shajghuri_admin_auth");
-    } catch {
-      // ignore
+      const res = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to sign in.");
+      setPassword("");
+      setIsAuthenticated(true);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Unable to sign in.");
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleLogout = async () => {
+    await fetch("/api/admin/auth", { method: "DELETE" }).catch(() => undefined);
+    setIsAuthenticated(false);
+  };
+
+  const handleDelete = async (id: number) => {
     if (confirm("Are you sure you want to delete this product?")) {
-      setProducts(products.filter(p => p.id !== id));
+      try {
+        await setProducts(products.filter(p => p.id !== id));
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "Product could not be deleted.");
+      }
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
     
@@ -164,10 +148,20 @@ export default function AdminDashboard() {
         ...sanitizedProduct,
         id: Math.max(0, ...products.map(p => p.id)) + 1
       };
-      setProducts([newProduct, ...products]);
+      try {
+        await setProducts([newProduct, ...products]);
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "Product could not be saved.");
+        return;
+      }
     } else {
       // Update existing
-      setProducts(products.map(p => p.id === sanitizedProduct.id ? sanitizedProduct : p));
+      try {
+        await setProducts(products.map(p => p.id === sanitizedProduct.id ? sanitizedProduct : p));
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "Product could not be saved.");
+        return;
+      }
     }
     setEditingProduct(null);
   };
@@ -175,7 +169,7 @@ export default function AdminDashboard() {
   const handleOrderStatusUpdate = async (orderId: string, newStatus: Order["status"]) => {
     try {
       const currentOrder = orders.find(o => o.id === orderId);
-      const res = await fetch("/api/orders", {
+      const res = await fetch("/api/admin/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: orderId, status: newStatus }),
@@ -194,18 +188,6 @@ export default function AdminDashboard() {
 
         // Re-sync catalog with the server so the archive tab is guaranteed consistent
         await refreshProducts();
-
-        // Update local storage backup
-        try {
-          const backupRaw = localStorage.getItem("shajghuri_orders_backup");
-          if (backupRaw) {
-            const backupList = JSON.parse(backupRaw);
-            if (Array.isArray(backupList)) {
-              const updatedList = backupList.map((o: any) => o.id === orderId ? { ...o, status: newStatus } : o);
-              localStorage.setItem("shajghuri_orders_backup", JSON.stringify(updatedList));
-            }
-          }
-        } catch {}
       }
     } catch (err) {
       console.error("Failed to update status:", err);
@@ -243,7 +225,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <form onSubmit={(e) => handleLogin(e, false)} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-1.5 text-left">
               <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">Admin Access Key</label>
               <div className="relative">
@@ -251,7 +233,9 @@ export default function AdminDashboard() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password (default: shajghuri2024)"
+                  placeholder="Enter admin password"
+                  required
+                  autoComplete="current-password"
                   className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-rose-500 focus:bg-white focus:ring-2 focus:ring-rose-100 transition-all font-mono"
                 />
                 <button
@@ -262,7 +246,7 @@ export default function AdminDashboard() {
                   Fill Default
                 </button>
               </div>
-              <p className="text-[11px] text-zinc-400">Password is set to <code className="bg-zinc-100 px-1 py-0.5 rounded text-zinc-700">shajghuri2024</code></p>
+              <p className="text-[11px] text-zinc-400">Use the private admin password configured for this site.</p>
             </div>
 
             <button
@@ -273,19 +257,6 @@ export default function AdminDashboard() {
               <span>Enter Admin Dashboard</span>
             </button>
 
-            <div className="relative flex items-center justify-center my-4">
-              <div className="border-t border-zinc-200 w-full" />
-              <span className="bg-white px-3 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">or</span>
-              <div className="border-t border-zinc-200 w-full" />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleLogin(undefined, true)}
-              className="w-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 py-3 rounded-xl text-xs uppercase tracking-wider font-semibold transition-colors"
-            >
-              ⚡ Instant 1-Click Access
-            </button>
           </form>
         </div>
       </div>

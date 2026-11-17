@@ -1,116 +1,108 @@
 import { NextResponse } from 'next/server';
-import { getAllOrders, insertOrder, updateOrderStatus, Order, OrderItem } from '@/lib/db';
-import { sendEmailNotification, getWhatsAppStoreUrl, getEmailStoreUrl } from '@/lib/notifications';
+import { createOrder, type NewOrderInput } from '@/lib/db';
+import { isSameOrigin, rateLimit, readJson } from '@/lib/security';
 import { dispatchOrderEmails } from '@/lib/email';
 
-export type { Order, OrderItem };
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  try {
-    const orders = getAllOrders();
-    return NextResponse.json(orders);
-  } catch (error: any) {
-    console.error('Failed to fetch orders:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to fetch orders' }, { status: 500 });
-  }
-}
+type CheckoutBody = {
+  customerName?: unknown;
+  phone?: unknown;
+  email?: unknown;
+  address?: unknown;
+  city?: unknown;
+  deliveryZone?: unknown;
+  paymentMethod?: unknown;
+  trxId?: unknown;
+  notes?: unknown;
+  items?: unknown;
+};
+
+const deliveryZones: NewOrderInput['deliveryZone'][] = ['inside_narayanganj', 'outside_narayanganj', 'college_road_pickup'];
+const paymentMethods: NewOrderInput['paymentMethod'][] = ['cod', 'bkash', 'nagad'];
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return NextResponse.json({ error: 'Invalid request origin.' }, { status: 403 });
+  if (!await rateLimit(request, 'checkout', 8, 10 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Too many order attempts. Please wait a few minutes.' }, { status: 429 });
+  }
+
+  const body = await readJson<CheckoutBody>(request, 16_384);
+  if (!body) return NextResponse.json({ error: 'Invalid or oversized order request.' }, { status: 400 });
+
+  const customerName = cleanText(body.customerName, 2, 100);
+  const phone = cleanText(body.phone, 8, 24);
+  const emailInput = cleanText(body.email, 5, 254);
+  const email = emailInput?.toLowerCase() ?? null;
+  const address = cleanText(body.address, 5, 300);
+  const city = cleanText(body.city, 2, 80);
+  const deliveryZone = body.deliveryZone;
+  const paymentMethod = body.paymentMethod;
+  const trxId = cleanText(body.trxId ?? '', 0, 100) || '';
+  const notes = cleanText(body.notes ?? '', 0, 500) || '';
+
+  if (!customerName || !phone || !/^[\d\s()+.-]{8,24}$/.test(phone) || phone.replace(/\D/g, '').length < 8 || phone.replace(/\D/g, '').length > 15
+    || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !address || !city
+    || !deliveryZones.includes(deliveryZone as NewOrderInput['deliveryZone'])
+    || !paymentMethods.includes(paymentMethod as NewOrderInput['paymentMethod'])) {
+    return NextResponse.json({ error: 'Please provide valid contact, delivery, and payment details.' }, { status: 400 });
+  }
+  if (paymentMethod !== 'cod' && trxId.length < 3) {
+    return NextResponse.json({ error: 'Please provide a valid payment transaction reference.' }, { status: 400 });
+  }
+
+  const requestedItems = parseRequestedItems(body.items);
+  if (!requestedItems) return NextResponse.json({ error: 'Your cart contains invalid items or quantities.' }, { status: 400 });
+
   try {
-    const body = await request.json();
-    const {
+    const result = await createOrder({
       customerName,
       phone,
       email,
       address,
       city,
-      deliveryZone,
-      deliveryFee,
-      paymentMethod,
+      deliveryZone: deliveryZone as NewOrderInput['deliveryZone'],
+      paymentMethod: paymentMethod as NewOrderInput['paymentMethod'],
       trxId,
       notes,
-      items,
-      subtotal,
-      total,
-    } = body;
-
-    // Detailed field validation
-    if (!customerName || typeof customerName !== 'string' || !customerName.trim()) {
-      return NextResponse.json({ error: 'Please enter your full name.' }, { status: 400 });
-    }
-
-    if (!phone || typeof phone !== 'string' || !phone.trim()) {
-      return NextResponse.json({ error: 'Please enter a valid phone number.' }, { status: 400 });
-    }
-
-    if (!address || typeof address !== 'string' || !address.trim()) {
-      return NextResponse.json({ error: 'Please enter your delivery address.' }, { status: 400 });
-    }
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: 'Your shopping bag is empty.' }, { status: 400 });
-    }
-
-    // Save order into the database
-    const newOrder = insertOrder({
-      customerName,
-      phone,
-      email: email || '',
-      address,
-      city: city || (deliveryZone === 'outside_narayanganj' ? 'Outside Narayanganj' : 'Narayanganj'),
-      deliveryZone: deliveryZone || 'inside_narayanganj',
-      deliveryFee: Number(deliveryFee) || (deliveryZone === 'college_road_pickup' ? 20 : deliveryZone === 'inside_narayanganj' ? 60 : 120),
-      paymentMethod: paymentMethod || 'cod',
-      trxId: trxId || '',
-      notes: notes || '',
-      items,
-      subtotal: Number(subtotal) || 0,
-      total: Number(total) || 0,
+      requestedItems,
     });
 
-    // Dispatch automated confirmation emails to BOTH business (shajghuri@gmail.com) and customer
-    dispatchOrderEmails(newOrder).catch((err) => {
-      console.warn('[Order Notification] Dual email dispatch warning:', err?.message);
-    });
-
-    const whatsappUrl = getWhatsAppStoreUrl(newOrder);
-    const emailUrl = getEmailStoreUrl(newOrder);
-
+    dispatchOrderEmails(result.order).catch(() => console.warn('[Order Notification] Email dispatch failed.'));
     return NextResponse.json(
-      {
-        success: true,
-        order: newOrder,
-        notifications: {
-          whatsappUrl,
-          emailUrl,
-        },
-      },
-      { status: 201 }
+      { success: true, order: result.order, accessToken: result.accessToken },
+      { status: 201, headers: { 'Cache-Control': 'no-store' } },
     );
-  } catch (error: any) {
-    console.error('Error creating order in database:', error);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    const status = message.startsWith('Insufficient stock') ? 409 : 503;
+    console.error('[Orders] Order creation failed:', status, message.slice(0, 160));
     return NextResponse.json(
-      { error: error?.message || 'Failed to process order. Please try again.' },
-      { status: 500 }
+      { error: status === 409 ? 'One or more items are no longer available in the requested quantity.' : 'We could not save your order right now. Please try again.' },
+      { status },
     );
   }
 }
 
-export async function PATCH(request: Request) {
-  try {
-    const { id, status } = await request.json();
-    if (!id || !status) {
-      return NextResponse.json({ error: 'Missing order id or status' }, { status: 400 });
-    }
+function cleanText(value: unknown, min: number, max: number): string | null {
+  if (typeof value !== 'string') return null;
+  const cleaned = value.trim().replace(/[\u0000-\u001f\u007f]/g, '');
+  return cleaned.length >= min && cleaned.length <= max ? cleaned : null;
+}
 
-    const updated = updateOrderStatus(id, status);
-    if (!updated) {
-      return NextResponse.json({ error: 'Order not found in database' }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true, order: updated });
-  } catch (error: any) {
-    console.error('Failed to update order status:', error);
-    return NextResponse.json({ error: error?.message || 'Failed to update order status' }, { status: 500 });
+function parseRequestedItems(value: unknown): { id: number; quantity: number }[] | null {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 20) return null;
+  const seen = new Set<number>();
+  const items: { id: number; quantity: number }[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== 'object') return null;
+    const item = raw as Record<string, unknown>;
+    if (!Number.isSafeInteger(item.id) || Number(item.id) < 1 || !Number.isSafeInteger(item.quantity) || Number(item.quantity) < 1 || Number(item.quantity) > 50) return null;
+    const id = Number(item.id);
+    if (seen.has(id)) return null;
+    seen.add(id);
+    items.push({ id, quantity: Number(item.quantity) });
   }
+  return items;
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingBag, Menu, X, Phone, ShieldCheck, Heart } from "lucide-react";
+import { Search, ShoppingBag, Menu, X, Phone, ShieldCheck } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";

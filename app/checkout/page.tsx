@@ -6,12 +6,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAppContext } from "@/context/AppContext";
-import { ArrowLeft, ShieldCheck, Truck, CreditCard, CheckCircle2, ChevronRight, Lock, Mail, MessageCircle, Sparkles, ExternalLink, ArrowRight, RotateCcw } from "lucide-react";
-import { STORE_PHONE, STORE_WHATSAPP, STORE_EMAIL, formatWhatsAppOrderMessage, getDeliveryZoneLabel } from "@/lib/notifications";
+import type { Order } from "@/lib/db";
+import { ShieldCheck, Truck, CreditCard, CheckCircle2, ChevronRight, Lock, Mail, MessageCircle, Sparkles, ExternalLink, ArrowRight, RotateCcw } from "lucide-react";
+import { STORE_WHATSAPP, STORE_EMAIL, formatWhatsAppOrderMessage, getDeliveryZoneLabel } from "@/lib/notifications";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, cartTotal, clearCart, refreshProducts, decrementStock } = useAppContext();
+  const { cart, cartTotal, clearCart, refreshProducts } = useAppContext();
 
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
@@ -25,22 +26,11 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [confirmedOrder, setConfirmedOrder] = useState<any>(null);
+  const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const last = localStorage.getItem("shajghuri_last_order");
-      if (last) {
-        const parsed = JSON.parse(last);
-        if (parsed && parsed.id) {
-          setConfirmedOrder(parsed);
-        }
-      }
-    } catch (e) {
-      console.warn("Storage restore error:", e);
-    }
-    setIsLoaded(true);
+    void Promise.resolve().then(() => setIsLoaded(true));
   }, []);
 
   const deliveryFee = deliveryZone === "college_road_pickup" ? 20 : deliveryZone === "inside_narayanganj" ? 60 : 120;
@@ -68,9 +58,7 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      const orderId = `SG-${Math.floor(100000 + Math.random() * 900000)}`;
       const orderPayload = {
-        id: orderId,
         customerName: customerName.trim(),
         phone: phone.trim(),
         email: email.trim(),
@@ -83,93 +71,47 @@ export default function CheckoutPage() {
         notes: notes.trim(),
         items: cart.map(item => ({
           id: item.id,
-          name: item.name,
-          price: item.price,
           quantity: item.quantity,
-          image: item.image,
         })),
-        subtotal: cartTotal,
-        total: grandTotal,
       };
 
-      // Always save to client-side database backup immediately
-      try {
-        const existingRaw = localStorage.getItem("shajghuri_orders_backup");
-        const existing = existingRaw ? JSON.parse(existingRaw) : [];
-        existing.unshift(orderPayload);
-        localStorage.setItem("shajghuri_orders_backup", JSON.stringify(existing));
-        localStorage.setItem("shajghuri_last_order", JSON.stringify(orderPayload));
-      } catch (backupErr) {
-        console.warn("Local storage backup warning:", backupErr);
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderPayload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.order || !data.accessToken) {
+        throw new Error(data.error || "We could not save your order. Please try again.");
       }
 
-      // Submit to backend API / Server Database
-      let serverOrder = orderPayload;
+      setConfirmedOrder(data.order);
       try {
-        const res = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(orderPayload),
-        });
-
-        const data = await res.json();
-        if (res.ok && data.success && data.order) {
-          serverOrder = data.order;
-          localStorage.setItem("shajghuri_last_order", JSON.stringify(data.order));
-        } else if (!res.ok && data.error) {
-          throw new Error(data.error);
-        }
-      } catch (apiErr: any) {
-        // If it's a specific validation error from API, show it
-        if (apiErr?.message && !apiErr.message.includes("fetch")) {
-          throw apiErr;
-        }
-        console.warn("Backend API notice (order saved to local database):", apiErr);
+        sessionStorage.setItem(`shajghuri_order_access:${data.order.id}`, data.accessToken);
+      } catch {
+        // The confirmation remains visible for this page session.
       }
 
-      // 1. Save and display the confirmed order IMMEDIATELY so the confirmation interface appears
-      setConfirmedOrder(serverOrder);
-      try {
-        localStorage.setItem("shajghuri_last_order", JSON.stringify(serverOrder));
-      } catch (storageErr) {
-        console.warn("Storage write error:", storageErr);
-      }
-
-      // 2. Decrement product stock in local state immediately so quantity appears 1 lower everywhere
-      decrementStock(orderPayload.items);
-
-      // 3. Empty cart
       clearCart();
       setIsSubmitting(false);
-
-      try {
-        await refreshProducts();
-      } catch {}
-    } catch (err: any) {
+      await refreshProducts();
+    } catch (err: unknown) {
       console.error("Order error:", err);
-      setErrorMessage(err.message || "An unexpected error occurred. Please try again.");
+      setErrorMessage(err instanceof Error ? err.message : "An unexpected error occurred. Please try again.");
       setIsSubmitting(false);
     }
   };
 
-  // Dedicated "Your Order is Confirmed! Check Your Email" Interface
-  const activeOrder = confirmedOrder || (typeof window !== "undefined" ? (() => {
-    try {
-      const raw = localStorage.getItem("shajghuri_last_order");
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  })() : null);
+  // Customer order receipt
+  const activeOrder = confirmedOrder;
 
   if (activeOrder) {
     const whatsappMessage = formatWhatsAppOrderMessage(activeOrder);
     const whatsappUrl = `https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(whatsappMessage)}`;
-    const gmailUrl = "https://mail.google.com";
+    const contactEmailUrl = `mailto:${STORE_EMAIL}?subject=${encodeURIComponent(`Order ${activeOrder.id}`)}`;
 
     const handleStartNewOrder = () => {
       try {
-        localStorage.removeItem("shajghuri_last_order");
       } catch {}
       setConfirmedOrder(null);
       router.push("/collection");
@@ -191,18 +133,18 @@ export default function CheckoutPage() {
 
             <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3.5 py-1 rounded-full mb-3 border border-emerald-200">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Order Recorded in Database & Stock Reduced by 1</span>
+              <span>Order Received & Stock Updated</span>
             </div>
 
             <h1 className="font-cherry text-3xl sm:text-4xl md:text-5xl font-bold text-zinc-950 mb-2">
-              Your Order is Confirmed!
+              Your Order Has Been Received
             </h1>
             <p className="text-zinc-600 text-xs sm:text-sm max-w-md mx-auto font-light">
               Order Reference: <span className="font-mono text-zinc-950 font-bold select-all">#{activeOrder.id}</span>
             </p>
           </motion.div>
 
-          {/* Primary "Check Your Email" Hero Card */}
+          {/* Order next steps */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -216,34 +158,34 @@ export default function CheckoutPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <h2 className="text-2xl font-cherry font-bold text-zinc-950">
-                    Check Your Email
+                    What Happens Next
                   </h2>
                   <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                    Receipt Sent
+                    Order Received
                   </span>
                 </div>
                 <p className="text-xs md:text-sm text-zinc-700 leading-relaxed font-normal">
-                  Your order has been confirmed successfully! A full itemized invoice & confirmation receipt has been dispatched to:
+                  Our team will contact you to confirm your order and delivery details. Keep your order reference for follow-up:
                 </p>
                 <div className="mt-2.5 inline-flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-emerald-300 shadow-2xs">
                   <Mail className="w-4 h-4 text-emerald-600" />
                   <span className="font-bold text-sm text-zinc-900 select-all">{activeOrder.email}</span>
                 </div>
                 <p className="text-xs text-zinc-500 mt-2.5">
-                  👉 <em>Please check your email inbox (and Spam or Promotions folder if not visible immediately).</em>
+                  We have your email address for order updates. You can also contact us directly if you need help.
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <a
-                href={gmailUrl}
+                href={contactEmailUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="py-3.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
               >
                 <Mail className="w-4 h-4 stroke-[2]" />
-                <span>Open Gmail / Check Email</span>
+                <span>Email Shajghuri</span>
                 <ExternalLink className="w-3.5 h-3.5 opacity-70" />
               </a>
 
@@ -269,7 +211,7 @@ export default function CheckoutPage() {
                 </span>
               </h3>
               <div className="divide-y divide-zinc-100">
-                {activeOrder.items.map((item: any) => (
+                {activeOrder.items.map((item) => (
                   <div key={item.id} className="py-3.5 first:pt-0 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
                       <div className="relative w-14 h-16 rounded-xl overflow-hidden bg-zinc-100 border border-zinc-200 flex-shrink-0">
@@ -434,7 +376,7 @@ export default function CheckoutPage() {
                       Email Address <span className="text-rose-600">*</span>
                     </span>
                     <span className="text-[10px] text-zinc-400 font-normal">
-                      Order confirmation & item receipt will be sent here
+                      We will use this for order updates
                     </span>
                   </label>
                   <input

@@ -5,9 +5,9 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { CheckCircle2, ArrowRight, MessageCircle, Truck, MapPin, Phone, Mail, Sparkles } from "lucide-react";
-import { Order } from "@/lib/db";
-import { formatWhatsAppOrderMessage, STORE_PHONE, STORE_WHATSAPP, STORE_EMAIL, getDeliveryZoneLabel } from "@/lib/notifications";
+import { CheckCircle2, ArrowRight, MessageCircle, Truck, MapPin, Mail } from "lucide-react";
+import type { Order } from "@/lib/db";
+import { formatWhatsAppOrderMessage, STORE_PHONE, STORE_WHATSAPP, getDeliveryZoneLabel } from "@/lib/notifications";
 
 export default function OrderSuccessPage() {
   const params = useParams();
@@ -16,53 +16,25 @@ export default function OrderSuccessPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Try fetching from server database
-    fetch("/api/orders")
-      .then((res) => res.json())
-      .then((orders: Order[]) => {
-        if (Array.isArray(orders)) {
-          const found = orders.find((o) => o.id === orderId);
-          if (found) {
-            setOrder(found);
-            setLoading(false);
-            return;
-          }
-        }
-        fallbackToLocalStorage();
+    let accessToken: string | null = null;
+    try {
+      accessToken = sessionStorage.getItem(`shajghuri_order_access:${orderId}`);
+    } catch { /* Browser session storage may be unavailable. */ }
+    if (accessToken) {
+      fetch(`/api/orders/${encodeURIComponent(orderId)}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
       })
-      .catch((err) => {
-        console.warn("API load error, checking local database backup:", err);
-        fallbackToLocalStorage();
+        .then((res) => res.ok ? res.json() : null)
+        .then((result: Order | null) => {
+          if (result?.id === orderId) setOrder(result);
+        })
+        .catch(() => undefined)
+        .finally(() => setLoading(false));
+    } else {
+      void Promise.resolve().then(() => {
+        setLoading(false);
       });
-
-    function fallbackToLocalStorage() {
-      try {
-        const lastOrderRaw = localStorage.getItem("shajghuri_last_order");
-        if (lastOrderRaw) {
-          const parsed = JSON.parse(lastOrderRaw);
-          if (parsed && (parsed.id === orderId || !orderId)) {
-            setOrder(parsed);
-            setLoading(false);
-            return;
-          }
-        }
-
-        const backupRaw = localStorage.getItem("shajghuri_orders_backup");
-        if (backupRaw) {
-          const backupList = JSON.parse(backupRaw);
-          if (Array.isArray(backupList)) {
-            const found = backupList.find((o) => o.id === orderId);
-            if (found) {
-              setOrder(found);
-              setLoading(false);
-              return;
-            }
-          }
-        }
-      } catch (e) {
-        console.warn("Storage fallback error:", e);
-      }
-      setLoading(false);
     }
   }, [orderId]);
 
@@ -71,8 +43,6 @@ export default function OrderSuccessPage() {
     : `Hello Shajghuri! I placed order #${orderId}. Please confirm my jewelry delivery schedule.`;
 
   const whatsappUrl = `https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(whatsappMessage)}`;
-  const emailSubject = encodeURIComponent(`[Order #${orderId}] ৳${order?.total || ''} - ${order?.customerName || 'Customer Order'}`);
-  const emailUrl = `mailto:${STORE_EMAIL}?subject=${emailSubject}&body=${encodeURIComponent(whatsappMessage)}`;
 
   return (
     <div className="pt-10 pb-24 bg-[#FDFBF9] min-h-screen">
@@ -90,18 +60,18 @@ export default function OrderSuccessPage() {
 
           <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3.5 py-1 rounded-full mb-3 border border-emerald-200">
             <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-            <span>Order Confirmed & Stock Automatically Updated</span>
+            <span>Order Received & Stock Updated</span>
           </div>
 
           <h1 className="font-cherry text-3xl sm:text-4xl md:text-5xl font-bold text-zinc-950 mb-2">
-            Your Order is Confirmed!
+            Your Order Has Been Received
           </h1>
           <p className="text-zinc-600 text-xs md:text-sm max-w-md mx-auto font-light">
             Order Reference: <span className="font-mono text-zinc-950 font-bold select-all">#{orderId}</span>
           </p>
         </motion.div>
 
-        {/* Primary "Check Your Email" Banner */}
+        {/* Order next steps */}
         <div className="bg-gradient-to-br from-emerald-50 via-white to-amber-50/50 p-6 md:p-8 rounded-2xl border-2 border-emerald-300 shadow-md mb-8 space-y-4">
           <div className="flex items-start gap-3.5">
             <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
@@ -110,14 +80,14 @@ export default function OrderSuccessPage() {
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h3 className="text-lg md:text-xl font-cherry font-bold text-zinc-950">
-                  Check Your Email
+                  What Happens Next
                 </h3>
                 <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Confirmation Sent
+                  Order Received
                 </span>
               </div>
               <p className="text-xs md:text-sm text-zinc-700 font-light leading-relaxed">
-                An official order confirmation & item receipt has been dispatched to:
+                Our team will contact you to confirm the order and delivery details. We have your email address for order updates:
               </p>
               {order?.email && (
                 <div className="mt-2 inline-flex items-center gap-2 bg-white px-3.5 py-1.5 rounded-lg border border-emerald-200 shadow-2xs">
@@ -125,9 +95,7 @@ export default function OrderSuccessPage() {
                   <span className="font-semibold text-xs text-zinc-900 select-all">{order.email}</span>
                 </div>
               )}
-              <p className="text-[11px] text-zinc-500 mt-2 italic">
-                * Please check your inbox and Spam/Promotions folder if you don't see it immediately.
-              </p>
+              <p className="text-[11px] text-zinc-500 mt-2 italic">Contact us directly if you need help with this order.</p>
             </div>
           </div>
 

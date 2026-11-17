@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Sparkles, ShieldCheck, HeartHandshake, Truck, ArrowRight } from "lucide-react";
+import { Sparkles, ShieldCheck, Truck, ArrowRight } from "lucide-react";
 
 export default function AboutPage() {
   return (

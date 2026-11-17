@@ -62,35 +62,3 @@ export function getEmailStoreUrl(order: Order): string {
 /**
  * Dispatches an automated email notification to the store email (shajghuri@gmail.com)
  */
-export async function sendEmailNotification(order: Order): Promise<{ success: boolean; error?: string }> {
-  try {
-    const formatted = formatWhatsAppOrderMessage(order);
-
-    // Send automated notification via Web3Forms public API directly to shajghuri@gmail.com
-    const response = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        // Public access key or fallback to direct email receiver
-        access_key: process.env.WEB3FORMS_ACCESS_KEY || 'e9e8f6e2-2a2b-426b-944a-14d232e67540',
-        to: STORE_EMAIL,
-        from_name: `Shajghuri Store (${order.customerName})`,
-        subject: `💎 New Order #${order.id} - ৳${order.total} (${order.customerName})`,
-        message: formatted,
-        order_id: order.id,
-        customer_name: order.customerName,
-        customer_phone: order.phone,
-        total_amount: `BDT ${order.total}`,
-      }),
-    });
-
-    const result = await response.json();
-    return { success: result.success || response.ok };
-  } catch (err: any) {
-    console.warn('[Notification] Email dispatch warning (client mailto link remains active):', err?.message);
-    return { success: false, error: err?.message };
-  }
-}

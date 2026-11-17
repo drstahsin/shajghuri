@@ -2,6 +2,16 @@ import nodemailer from 'nodemailer';
 import { Order } from './db';
 import { STORE_EMAIL, STORE_PHONE, getDeliveryZoneLabel } from './notifications';
 
+function escapeHtml(value: string | number): string {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]!);
+}
+
 function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
   const zoneLabel = getDeliveryZoneLabel(order.deliveryZone);
   const paymentLabel = order.paymentMethod === 'cod'
@@ -13,7 +23,7 @@ function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
       (item) => `
       <tr style="border-bottom: 1px solid #f0ede8;">
         <td style="padding: 12px 8px; font-size: 13px; color: #1c1917; font-weight: 500;">
-          ${item.name}
+          ${escapeHtml(item.name)}
         </td>
         <td style="padding: 12px 8px; font-size: 13px; color: #57534e; text-align: center;">
           ${item.quantity}
@@ -33,7 +43,7 @@ function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
   <html>
   <head>
     <meta charset="utf-8">
-    <title>${isForCustomer ? `Order Confirmation #${order.id}` : `New Store Order #${order.id}`}</title>
+    <title>${isForCustomer ? `Order Confirmation #${escapeHtml(order.id)}` : `New Store Order #${escapeHtml(order.id)}`}</title>
   </head>
   <body style="margin: 0; padding: 0; background-color: #faf8f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
     <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #faf8f5; padding: 24px 12px;">
@@ -58,14 +68,14 @@ function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
               <td style="padding: 24px 28px; background-color: #fff1f2; border-bottom: 1px solid #ffe4e6;">
                 <p style="margin: 0; color: #9f1239; font-size: 15px; font-weight: 600;">
                   ${isForCustomer 
-                    ? `Thank You, ${order.customerName}! Your Jewelry Order #${order.id} is Confirmed.` 
-                    : `🎉 New Order Received: #${order.id} (৳${order.total})`
+                    ? `Thank You, ${escapeHtml(order.customerName)}! We received your order #${escapeHtml(order.id)}.`
+                    : `🎉 New Order Received: #${escapeHtml(order.id)} (৳${escapeHtml(order.total)})`
                   }
                 </p>
                 <p style="margin: 4px 0 0; color: #44403c; font-size: 12px;">
                   ${isForCustomer 
-                    ? 'Our atelier has received your order and is currently preparing your pieces with protective signature packaging.' 
-                    : `Customer ${order.customerName} (${order.phone}) placed a new order via the website.`
+                    ? 'Our team will contact you to confirm your order and delivery details.'
+                    : `Customer ${escapeHtml(order.customerName)} (${escapeHtml(order.phone)}) placed a new order via the website.`
                   }
                 </p>
               </td>
@@ -81,16 +91,16 @@ function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
                         Delivery Details
                       </h4>
                       <p style="margin: 0; font-size: 13px; color: #1c1917; font-weight: 600;">
-                        ${order.customerName}
+                        ${escapeHtml(order.customerName)}
                       </p>
                       <p style="margin: 4px 0 0; font-size: 12px; color: #57534e; line-height: 1.4;">
-                        ${order.address}<br>
-                        ${order.city} (${zoneLabel})
+                        ${escapeHtml(order.address)}<br>
+                        ${escapeHtml(order.city)} (${escapeHtml(zoneLabel)})
                       </p>
                       <p style="margin: 6px 0 0; font-size: 12px; color: #1c1917;">
-                        📞 <strong>Phone:</strong> ${order.phone}
+                        📞 <strong>Phone:</strong> ${escapeHtml(order.phone)}
                       </p>
-                      ${order.email ? `<p style="margin: 3px 0 0; font-size: 12px; color: #57534e;">✉️ <strong>Email:</strong> ${order.email}</p>` : ''}
+                      ${order.email ? `<p style="margin: 3px 0 0; font-size: 12px; color: #57534e;">✉️ <strong>Email:</strong> ${escapeHtml(order.email)}</p>` : ''}
                     </td>
 
                     <td width="50%" valign="top" style="padding-left: 12px;">
@@ -98,7 +108,7 @@ function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
                         Order Protocol
                       </h4>
                       <p style="margin: 0; font-size: 12px; color: #57534e;">
-                        <strong>Order Ref:</strong> #${order.id}
+                        <strong>Order Ref:</strong> #${escapeHtml(order.id)}
                       </p>
                       <p style="margin: 4px 0 0; font-size: 12px; color: #57534e;">
                         <strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}
@@ -106,8 +116,8 @@ function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
                       <p style="margin: 4px 0 0; font-size: 12px; color: #57534e;">
                         <strong>Payment:</strong> ${paymentLabel}
                       </p>
-                      ${order.trxId ? `<p style="margin: 4px 0 0; font-size: 12px; color: #be123c; font-family: monospace; font-weight: 600;"><strong>TrxID:</strong> ${order.trxId}</p>` : ''}
-                      ${order.notes ? `<p style="margin: 6px 0 0; font-size: 11px; color: #78716c; font-style: italic;"><strong>Note:</strong> "${order.notes}"</p>` : ''}
+                      ${order.trxId ? `<p style="margin: 4px 0 0; font-size: 12px; color: #be123c; font-family: monospace; font-weight: 600;"><strong>TrxID:</strong> ${escapeHtml(order.trxId)}</p>` : ''}
+                      ${order.notes ? `<p style="margin: 6px 0 0; font-size: 11px; color: #78716c; font-style: italic;"><strong>Note:</strong> "${escapeHtml(order.notes)}"</p>` : ''}
                     </td>
                   </tr>
                 </table>
@@ -249,9 +259,10 @@ export async function dispatchOrderEmails(order: Order): Promise<EmailDispatchRe
     });
     result.businessEmailSent = true;
     console.log(`[Email] Successfully delivered order notification to business (${STORE_EMAIL})`);
-  } catch (err: any) {
-    console.error('[Email] Failed to send business notification:', err?.message);
-    result.businessError = err?.message;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown delivery error';
+    console.error('[Email] Failed to send business notification:', message);
+    result.businessError = message;
   }
 
   // 2. Send to Customer if email provided
@@ -266,12 +277,32 @@ export async function dispatchOrderEmails(order: Order): Promise<EmailDispatchRe
         text: `Thank you for your order #${order.id}!\nTotal: ৳${order.total}\nWe will deliver to: ${order.address}\nHotline: ${STORE_PHONE}`,
       });
       result.customerEmailSent = true;
-      console.log(`[Email] Successfully delivered confirmation receipt to customer (${order.email})`);
-    } catch (err: any) {
-      console.error('[Email] Failed to send customer confirmation:', err?.message);
-      result.customerError = err?.message;
+      console.log('[Email] Customer order email delivered.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown delivery error';
+      console.error('[Email] Failed to send customer confirmation:', message);
+      result.customerError = message;
     }
   }
 
   return result;
+}
+
+export async function dispatchContactInquiry(inquiry: {
+  name: string;
+  contact: string;
+  subject: string;
+  message: string;
+}): Promise<void> {
+  const transporter = createTransporter();
+  if (!transporter) throw new Error('Email delivery is not configured.');
+  const emailContact = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inquiry.contact) ? inquiry.contact : undefined;
+  await transporter.sendMail({
+    from: `"Shajghuri Website" <${process.env.EMAIL_USER || STORE_EMAIL}>`,
+    to: STORE_EMAIL,
+    ...(emailContact ? { replyTo: emailContact } : {}),
+    subject: `Website inquiry: ${inquiry.subject}`,
+    text: `Name: ${inquiry.name}\nContact: ${inquiry.contact}\nSubject: ${inquiry.subject}\n\n${inquiry.message}`,
+    html: `<h2>New website inquiry</h2><p><strong>Name:</strong> ${escapeHtml(inquiry.name)}</p><p><strong>Contact:</strong> ${escapeHtml(inquiry.contact)}</p><p><strong>Subject:</strong> ${escapeHtml(inquiry.subject)}</p><pre style="white-space:pre-wrap;font-family:Arial,sans-serif">${escapeHtml(inquiry.message)}</pre>`,
+  });
 }

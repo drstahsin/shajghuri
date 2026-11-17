@@ -21,7 +21,7 @@ export interface CartItem extends Product {
 
 interface AppContextType {
   products: Product[];
-  setProducts: (products: Product[]) => void;
+  setProducts: (products: Product[]) => Promise<void>;
   refreshProducts: () => Promise<void>;
   decrementStock: (orderedItems: { id: number | string; quantity: number }[]) => void;
   restoreStock: (cancelledItems: { id: number | string; quantity: number }[]) => void;
@@ -46,8 +46,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refreshProducts = async () => {
     try {
       const res = await fetch(`/api/products?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Catalog request failed');
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setProductsState(data);
       }
     } catch (err) {
@@ -61,7 +62,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const match = orderedItems.find((it) => Number(it.id) === Number(p.id));
         if (match) {
           const qty = Math.max(1, Number(match.quantity) || 1);
-          const currentStock = typeof p.stock === 'number' ? p.stock : (parseInt(p.stock as any, 10) || 0);
+          const currentStock = Number.isFinite(p.stock) ? p.stock : (parseInt(String(p.stock), 10) || 0);
           return { ...p, stock: Math.max(0, currentStock - qty) };
         }
         return p;
@@ -75,7 +76,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const match = cancelledItems.find((it) => Number(it.id) === Number(p.id));
         if (match) {
           const qty = Math.max(1, Number(match.quantity) || 1);
-          const currentStock = typeof p.stock === 'number' ? p.stock : (parseInt(p.stock as any, 10) || 0);
+          const currentStock = Number.isFinite(p.stock) ? p.stock : (parseInt(String(p.stock), 10) || 0);
           return { ...p, stock: currentStock + qty };
         }
         return p;
@@ -84,38 +85,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    refreshProducts();
-
-    // Load cart
-    const storedCart = localStorage.getItem("shajghuri_cart");
-    if (storedCart) {
+    void Promise.resolve().then(() => {
+      refreshProducts();
       try {
-        setCart(JSON.parse(storedCart));
-      } catch (e) {
+        const storedCart = localStorage.getItem("shajghuri_cart");
+        if (storedCart) setCart(JSON.parse(storedCart));
+      } catch {
         setCart([]);
       }
-    }
+    });
   }, []);
 
   const setProducts = async (newProducts: Product[]) => {
-    // Update local state instantly for snappy UI
-    setProductsState(newProducts);
-    
-    // Save to backend API
-    try {
-      await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newProducts),
-      });
-    } catch (e) {
-      console.error("Failed to save products to API", e);
+    const response = await fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newProducts),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || 'Catalog could not be saved.');
     }
+    setProductsState(newProducts);
   };
 
   const saveCart = (newCart: CartItem[]) => {
     setCart(newCart);
-    localStorage.setItem("shajghuri_cart", JSON.stringify(newCart));
+    try {
+      localStorage.setItem("shajghuri_cart", JSON.stringify(newCart));
+    } catch {
+      // Cart state still remains available for the current page session.
+    }
   };
 
   const addToCart = (product: Product) => {
