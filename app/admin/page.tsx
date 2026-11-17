@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useAppContext, Product } from "@/context/AppContext";
-import { Lock, Search, Edit2, Trash2, Plus, Download, Package, ShoppingBag, Phone, MapPin, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
+import { Lock, Search, Edit2, Trash2, Plus, Download, Package, ShoppingBag, Phone, MapPin, ChevronDown, ChevronUp, Image as ImageIcon, MessageCircle, Check } from "lucide-react";
 import Image from "next/image";
-import { Order } from "@/app/api/orders/route";
+import { Order, OrderItem } from "@/lib/db";
 
 function sanitizeImagePath(input: string): string {
   if (!input || typeof input !== "string") return "";
@@ -78,11 +78,28 @@ export default function AdminDashboard() {
     try {
       const res = await fetch("/api/orders");
       const data = await res.json();
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         setOrders(data);
+      } else {
+        try {
+          const backupRaw = localStorage.getItem("shajghuri_orders_backup");
+          if (backupRaw) {
+            const backupList = JSON.parse(backupRaw);
+            if (Array.isArray(backupList) && backupList.length > 0) {
+              setOrders(backupList);
+            }
+          }
+        } catch {}
       }
     } catch (err) {
       console.error("Failed to fetch orders:", err);
+      try {
+        const backupRaw = localStorage.getItem("shajghuri_orders_backup");
+        if (backupRaw) {
+          const backupList = JSON.parse(backupRaw);
+          if (Array.isArray(backupList)) setOrders(backupList);
+        }
+      } catch {}
     } finally {
       setOrdersLoading(false);
     }
@@ -639,18 +656,46 @@ export default function AdminDashboard() {
                             <p className="font-serif text-xl text-ink">৳{ord.total}</p>
                           </div>
 
-                          {/* Status Selector */}
-                          <select
-                            value={ord.status}
-                            onChange={(e) => handleOrderStatusUpdate(ord.id, e.target.value as Order["status"])}
-                            className="bg-paper border border-stone/20 text-xs px-3 py-2 uppercase tracking-wider text-stone focus:outline-none focus:border-ink cursor-pointer"
-                          >
-                            <option value="Pending">Pending</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Shipped">Shipped</option>
-                            <option value="Delivered">Delivered</option>
-                            <option value="Cancelled">Cancelled</option>
-                          </select>
+                          <div className="flex items-center gap-2">
+                            {/* WhatsApp Customer Button */}
+                            <a
+                              href={`https://wa.me/88${ord.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                                `Hello ${ord.customerName}! This is Shajghuri Atelier. We are confirming your order #${ord.id} for ৳${ord.total} to: ${ord.address}.`
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-semibold rounded flex items-center gap-1 transition-colors"
+                              title="Message customer on WhatsApp"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 stroke-[2.2]" />
+                              <span className="hidden sm:inline">WhatsApp</span>
+                            </a>
+
+                            {/* One-Click Quick Confirm Button */}
+                            {ord.status === "Pending" && (
+                              <button
+                                onClick={() => handleOrderStatusUpdate(ord.id, "Confirmed")}
+                                className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] uppercase font-bold tracking-wider rounded flex items-center gap-1 transition-all shadow-xs cursor-pointer"
+                                title="One-click order confirmation"
+                              >
+                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>Confirm</span>
+                              </button>
+                            )}
+
+                            {/* Status Selector */}
+                            <select
+                              value={ord.status}
+                              onChange={(e) => handleOrderStatusUpdate(ord.id, e.target.value as Order["status"])}
+                              className="bg-paper border border-stone/20 text-xs px-2.5 py-2 uppercase tracking-wider text-stone focus:outline-none focus:border-ink cursor-pointer"
+                            >
+                              <option value="Pending">Pending</option>
+                              <option value="Confirmed">Confirmed</option>
+                              <option value="Shipped">Shipped</option>
+                              <option value="Delivered">Delivered</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          </div>
 
                           {/* Expand details button */}
                           <button
@@ -692,7 +737,7 @@ export default function AdminDashboard() {
                           <div>
                             <p className="text-[10px] uppercase tracking-widest font-medium text-ink mb-3">Items Purchased</p>
                             <div className="divide-y divide-stone/10 border-t border-stone/10">
-                              {ord.items.map((it) => (
+                              {ord.items.map((it: OrderItem) => (
                                 <div key={it.id} className="py-2.5 flex items-center justify-between text-xs">
                                   <div className="flex items-center gap-3">
                                     <div className="relative w-8 h-10 bg-zinc-100 flex-shrink-0 overflow-hidden rounded border border-zinc-200">

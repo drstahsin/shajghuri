@@ -34,17 +34,17 @@ export function ProductCard({ product }: { product: Product }) {
 
         {/* Stock / Category Badge */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
-          {product.stock <= 4 && product.stock > 0 ? (
-            <span className="bg-rose-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
-              Only {product.stock} Left
-            </span>
-          ) : product.stock === 0 ? (
-            <span className="bg-zinc-800 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+          {product.stock <= 0 ? (
+            <span className="bg-zinc-900/95 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
               Out of Stock
             </span>
+          ) : product.stock <= 3 ? (
+            <span className="bg-rose-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm animate-pulse">
+              Only {product.stock} Left!
+            </span>
           ) : (
-            <span className="bg-white/90 backdrop-blur-xs text-zinc-700 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider border border-zinc-200/60 shadow-2xs">
-              {product.category}
+            <span className="bg-emerald-700 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+              {product.stock} in Stock
             </span>
           )}
         </div>
@@ -96,13 +96,21 @@ export function ProductCard({ product }: { product: Product }) {
 
         {/* Price & Action */}
         <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-base md:text-lg font-bold text-zinc-950">
-              ৳{product.price}
-            </span>
-            <span className="text-xs text-zinc-400 line-through">
-              ৳{Math.round(product.price * 1.25)}
-            </span>
+          <div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-base md:text-lg font-bold text-zinc-950">
+                ৳{product.price}
+              </span>
+              <span className="text-xs text-zinc-400 line-through">
+                ৳{Math.round(product.price * 1.25)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${product.stock > 0 ? "bg-emerald-500" : "bg-rose-500"}`} />
+              <span className="text-[11px] text-zinc-500 font-medium">
+                {product.stock > 0 ? `Stock: ${product.stock} available` : "Out of stock"}
+              </span>
+            </div>
           </div>
 
           <button

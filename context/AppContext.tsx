@@ -23,6 +23,7 @@ interface AppContextType {
   products: Product[];
   setProducts: (products: Product[]) => void;
   refreshProducts: () => Promise<void>;
+  decrementStock: (orderedItems: { id: number | string; quantity: number }[]) => void;
   cart: CartItem[];
   addToCart: (product: Product) => void;
   removeFromCart: (productId: number) => void;
@@ -43,14 +44,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProducts = async () => {
     try {
-      const res = await fetch('/api/products');
+      const res = await fetch(`/api/products?t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
-      if (data && data.length > 0) {
+      if (Array.isArray(data) && data.length > 0) {
         setProductsState(data);
       }
     } catch (err) {
       console.error("Failed to refresh products", err);
     }
+  };
+
+  const decrementStock = (orderedItems: { id: number | string; quantity: number }[]) => {
+    setProductsState((prevProducts) =>
+      prevProducts.map((p) => {
+        const match = orderedItems.find((it) => Number(it.id) === Number(p.id));
+        if (match) {
+          const qty = Math.max(1, Number(match.quantity) || 1);
+          const currentStock = typeof p.stock === 'number' ? p.stock : (parseInt(p.stock as any, 10) || 0);
+          return { ...p, stock: Math.max(0, currentStock - qty) };
+        }
+        return p;
+      })
+    );
   };
 
   useEffect(() => {
@@ -145,6 +160,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         products,
         setProducts,
         refreshProducts,
+        decrementStock,
         cart,
         addToCart,
         removeFromCart,

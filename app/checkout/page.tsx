@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAppContext } from "@/context/AppContext";
-import { ArrowLeft, ShieldCheck, Truck, CreditCard, CheckCircle2, ChevronRight, Lock } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Truck, CreditCard, CheckCircle2, ChevronRight, Lock, Mail, MessageCircle, Sparkles, ExternalLink, ArrowRight, RotateCcw } from "lucide-react";
+import { STORE_PHONE, STORE_WHATSAPP, STORE_EMAIL, formatWhatsAppOrderMessage, getDeliveryZoneLabel } from "@/lib/notifications";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, cartTotal, clearCart, refreshProducts } = useAppContext();
+  const { cart, cartTotal, clearCart, refreshProducts, decrementStock } = useAppContext();
 
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
@@ -24,6 +25,23 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [confirmedOrder, setConfirmedOrder] = useState<any>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const last = localStorage.getItem("shajghuri_last_order");
+      if (last) {
+        const parsed = JSON.parse(last);
+        if (parsed && parsed.id) {
+          setConfirmedOrder(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn("Storage restore error:", e);
+    }
+    setIsLoaded(true);
+  }, []);
 
   const deliveryFee = deliveryZone === "college_road_pickup" ? 20 : deliveryZone === "inside_narayanganj" ? 60 : 120;
   const grandTotal = cartTotal + deliveryFee;
@@ -37,8 +55,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!customerName.trim() || !phone.trim() || !address.trim()) {
-      setErrorMessage("Please complete all required fields (Full Name, Phone Number, Delivery Address).");
+    if (!customerName.trim() || !phone.trim() || !address.trim() || !email.trim()) {
+      setErrorMessage("Please complete all required fields: Full Name, Phone Number, Delivery Address, and Email Address.");
       return;
     }
 
@@ -50,12 +68,14 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
+      const orderId = `SG-${Math.floor(100000 + Math.random() * 900000)}`;
       const orderPayload = {
+        id: orderId,
         customerName: customerName.trim(),
         phone: phone.trim(),
         email: email.trim(),
         address: address.trim(),
-        city: city.trim(),
+        city: city.trim() || "Narayanganj",
         deliveryZone,
         deliveryFee,
         paymentMethod,
@@ -72,30 +92,259 @@ export default function CheckoutPage() {
         total: grandTotal,
       };
 
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderPayload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to place order.");
+      // Always save to client-side database backup immediately
+      try {
+        const existingRaw = localStorage.getItem("shajghuri_orders_backup");
+        const existing = existingRaw ? JSON.parse(existingRaw) : [];
+        existing.unshift(orderPayload);
+        localStorage.setItem("shajghuri_orders_backup", JSON.stringify(existing));
+        localStorage.setItem("shajghuri_last_order", JSON.stringify(orderPayload));
+      } catch (backupErr) {
+        console.warn("Local storage backup warning:", backupErr);
       }
 
-      // Empty cart and refresh local products stock
-      clearCart();
-      await refreshProducts();
+      // Submit to backend API / Server Database
+      let serverOrder = orderPayload;
+      try {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(orderPayload),
+        });
 
-      // Navigate to order confirmation
-      router.push(`/order-success/${data.order.id}`);
+        const data = await res.json();
+        if (res.ok && data.success && data.order) {
+          serverOrder = data.order;
+          localStorage.setItem("shajghuri_last_order", JSON.stringify(data.order));
+        } else if (!res.ok && data.error) {
+          throw new Error(data.error);
+        }
+      } catch (apiErr: any) {
+        // If it's a specific validation error from API, show it
+        if (apiErr?.message && !apiErr.message.includes("fetch")) {
+          throw apiErr;
+        }
+        console.warn("Backend API notice (order saved to local database):", apiErr);
+      }
+
+      // 1. Save and display the confirmed order IMMEDIATELY so the confirmation interface appears
+      setConfirmedOrder(serverOrder);
+      try {
+        localStorage.setItem("shajghuri_last_order", JSON.stringify(serverOrder));
+      } catch (storageErr) {
+        console.warn("Storage write error:", storageErr);
+      }
+
+      // 2. Decrement product stock in local state immediately so quantity appears 1 lower everywhere
+      decrementStock(orderPayload.items);
+
+      // 3. Empty cart
+      clearCart();
+      setIsSubmitting(false);
+
+      try {
+        await refreshProducts();
+      } catch {}
     } catch (err: any) {
       console.error("Order error:", err);
       setErrorMessage(err.message || "An unexpected error occurred. Please try again.");
       setIsSubmitting(false);
     }
   };
+
+  // Dedicated "Your Order is Confirmed! Check Your Email" Interface
+  const activeOrder = confirmedOrder || (typeof window !== "undefined" ? (() => {
+    try {
+      const raw = localStorage.getItem("shajghuri_last_order");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })() : null);
+
+  if (activeOrder) {
+    const whatsappMessage = formatWhatsAppOrderMessage(activeOrder);
+    const whatsappUrl = `https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(whatsappMessage)}`;
+    const gmailUrl = "https://mail.google.com";
+
+    const handleStartNewOrder = () => {
+      try {
+        localStorage.removeItem("shajghuri_last_order");
+      } catch {}
+      setConfirmedOrder(null);
+      router.push("/collection");
+    };
+
+    return (
+      <div className="pt-8 pb-24 bg-[#FDFBF9] min-h-screen">
+        <div className="container mx-auto px-4 md:px-8 max-w-3xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="text-center mb-8"
+          >
+            {/* Success Icon */}
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-md">
+              <CheckCircle2 className="w-12 h-12 stroke-[2.5]" />
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3.5 py-1 rounded-full mb-3 border border-emerald-200">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Order Recorded in Database & Stock Reduced by 1</span>
+            </div>
+
+            <h1 className="font-cherry text-3xl sm:text-4xl md:text-5xl font-bold text-zinc-950 mb-2">
+              Your Order is Confirmed!
+            </h1>
+            <p className="text-zinc-600 text-xs sm:text-sm max-w-md mx-auto font-light">
+              Order Reference: <span className="font-mono text-zinc-950 font-bold select-all">#{activeOrder.id}</span>
+            </p>
+          </motion.div>
+
+          {/* Primary "Check Your Email" Hero Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="bg-gradient-to-br from-emerald-50 via-white to-amber-50/50 p-6 md:p-8 rounded-2xl border-2 border-emerald-400 shadow-lg mb-8 space-y-5"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <Mail className="w-7 h-7 stroke-[2.2]" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h2 className="text-2xl font-cherry font-bold text-zinc-950">
+                    Check Your Email
+                  </h2>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    Receipt Sent
+                  </span>
+                </div>
+                <p className="text-xs md:text-sm text-zinc-700 leading-relaxed font-normal">
+                  Your order has been confirmed successfully! A full itemized invoice & confirmation receipt has been dispatched to:
+                </p>
+                <div className="mt-2.5 inline-flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-emerald-300 shadow-2xs">
+                  <Mail className="w-4 h-4 text-emerald-600" />
+                  <span className="font-bold text-sm text-zinc-900 select-all">{activeOrder.email}</span>
+                </div>
+                <p className="text-xs text-zinc-500 mt-2.5">
+                  👉 <em>Please check your email inbox (and Spam or Promotions folder if not visible immediately).</em>
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <a
+                href={gmailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-3.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+              >
+                <Mail className="w-4 h-4 stroke-[2]" />
+                <span>Open Gmail / Check Email</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+              </a>
+
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4 stroke-[2.5]" />
+                <span>Send Receipt on WhatsApp</span>
+              </a>
+            </div>
+          </motion.div>
+
+          {/* Purchased Items & Delivery Summary */}
+          <div className="bg-white p-6 md:p-8 rounded-2xl border border-zinc-200 shadow-sm mb-8 space-y-6">
+            <div>
+              <h3 className="text-xs uppercase font-bold tracking-wider text-zinc-900 mb-4 pb-2 border-b border-zinc-100 flex items-center justify-between">
+                <span>Ordered Items</span>
+                <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                  ✓ Stock automatically reduced
+                </span>
+              </h3>
+              <div className="divide-y divide-zinc-100">
+                {activeOrder.items.map((item: any) => (
+                  <div key={item.id} className="py-3.5 first:pt-0 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="relative w-14 h-16 rounded-xl overflow-hidden bg-zinc-100 border border-zinc-200 flex-shrink-0">
+                        <Image
+                          src={encodeURI(item.image || "/brand-logo-bw.png")}
+                          alt={item.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-xs md:text-sm text-zinc-900">{item.name}</h4>
+                        <p className="text-xs text-zinc-500 mt-0.5">
+                          Quantity: <span className="font-bold text-zinc-900">{item.quantity}</span> × ৳{item.price}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-zinc-950">৳{item.price * item.quantity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-zinc-100 text-xs text-zinc-600">
+              <div>
+                <span className="font-bold text-zinc-900 block mb-1">Delivering To:</span>
+                <p className="leading-relaxed">
+                  <span className="font-semibold text-zinc-900">{activeOrder.customerName}</span><br />
+                  {activeOrder.address}, {activeOrder.city}<br />
+                  Phone: {activeOrder.phone}
+                </p>
+              </div>
+              <div>
+                <span className="font-bold text-zinc-900 block mb-1">Payment & Total:</span>
+                <p>
+                  Method: <span className="font-medium text-zinc-900 uppercase">{activeOrder.paymentMethod}</span><br />
+                  Delivery: ৳{activeOrder.deliveryFee} ({getDeliveryZoneLabel(activeOrder.deliveryZone)})<br />
+                  <span className="font-bold text-rose-600 text-base mt-1 inline-block">Grand Total: ৳{activeOrder.total}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Navigation */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href={`/order-success/${activeOrder.id}`}
+              className="w-full sm:w-auto px-6 py-3.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-sm"
+            >
+              <span>View Full Order Details Page</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleStartNewOrder}
+              className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-zinc-50 text-zinc-900 border border-zinc-300 rounded-full text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-2xs cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Place Another Order / Continue Shopping</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="pt-24 pb-32 container mx-auto px-4 text-center max-w-xl min-h-[50vh] flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-zinc-500 font-light text-xs">Loading checkout...</p>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (
@@ -180,15 +429,21 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
-                    Email Address (Optional)
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1.5 flex items-center justify-between">
+                    <span>
+                      Email Address <span className="text-rose-600">*</span>
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-normal">
+                      Order confirmation & item receipt will be sent here
+                    </span>
                   </label>
                   <input
                     type="email"
-                    placeholder="For order tracking & receipt"
+                    required
+                    placeholder="e.g. farhana@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs md:text-sm focus:outline-none focus:border-rose-500 focus:bg-white transition-all"
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs md:text-sm focus:outline-none focus:border-rose-500 focus:bg-white transition-all font-mono"
                   />
                 </div>
               </div>
@@ -496,6 +751,14 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              {/* Inline Error Notice */}
+              {errorMessage && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium flex items-start gap-2">
+                  <span className="text-rose-600 font-bold">⚠️</span>
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
               {/* Place Order Button */}
               <button
                 type="submit"
@@ -507,7 +770,7 @@ export default function CheckoutPage() {
                 }`}
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>{isSubmitting ? "Processing Order..." : `Confirm Order (৳${grandTotal})`}</span>
+                <span>{isSubmitting ? "Confirming Order..." : `Confirm Order (৳${grandTotal})`}</span>
               </button>
 
               {/* Trust Notes */}

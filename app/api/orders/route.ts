@@ -1,63 +1,17 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { getAllOrders, insertOrder, updateOrderStatus, Order, OrderItem } from '@/lib/db';
+import { sendEmailNotification, getWhatsAppStoreUrl, getEmailStoreUrl } from '@/lib/notifications';
+import { dispatchOrderEmails } from '@/lib/email';
 
-const ordersFilePath = path.join(process.cwd(), 'data', 'orders.json');
-const productsFilePath = path.join(process.cwd(), 'data', 'products.json');
-
-export interface OrderItem {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-}
-
-export interface Order {
-  id: string;
-  createdAt: string;
-  status: 'Pending' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
-  customerName: string;
-  phone: string;
-  email?: string;
-  address: string;
-  city: string;
-  deliveryZone: 'inside_narayanganj' | 'outside_narayanganj' | 'college_road_pickup' | string;
-  deliveryFee: number;
-  paymentMethod: 'cod' | 'bkash' | 'nagad';
-  trxId?: string;
-  notes?: string;
-  items: OrderItem[];
-  subtotal: number;
-  total: number;
-}
-
-function readOrders(): Order[] {
-  try {
-    if (!fs.existsSync(ordersFilePath)) {
-      fs.writeFileSync(ordersFilePath, '[]', 'utf8');
-      return [];
-    }
-    const raw = fs.readFileSync(ordersFilePath, 'utf8');
-    return JSON.parse(raw);
-  } catch (error) {
-    console.error('Failed to read orders:', error);
-    return [];
-  }
-}
-
-function writeOrders(orders: Order[]) {
-  fs.writeFileSync(ordersFilePath, JSON.stringify(orders, null, 2), 'utf8');
-}
+export type { Order, OrderItem };
 
 export async function GET() {
   try {
-    const orders = readOrders();
-    // Return newest orders first
-    orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const orders = getAllOrders();
     return NextResponse.json(orders);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Failed to fetch orders:', error);
+    return NextResponse.json({ error: error?.message || 'Failed to fetch orders' }, { status: 500 });
   }
 }
 
@@ -80,59 +34,65 @@ export async function POST(request: Request) {
       total,
     } = body;
 
-    if (!customerName || !phone || !address || !items || items.length === 0) {
-      return NextResponse.json({ error: 'Missing required order fields' }, { status: 400 });
+    // Detailed field validation
+    if (!customerName || typeof customerName !== 'string' || !customerName.trim()) {
+      return NextResponse.json({ error: 'Please enter your full name.' }, { status: 400 });
     }
 
-    const orderId = `SG-${Math.floor(100000 + Math.random() * 900000)}`;
+    if (!phone || typeof phone !== 'string' || !phone.trim()) {
+      return NextResponse.json({ error: 'Please enter a valid phone number.' }, { status: 400 });
+    }
 
-    const newOrder: Order = {
-      id: orderId,
-      createdAt: new Date().toISOString(),
-      status: 'Pending',
+    if (!address || typeof address !== 'string' || !address.trim()) {
+      return NextResponse.json({ error: 'Please enter your delivery address.' }, { status: 400 });
+    }
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: 'Your shopping bag is empty.' }, { status: 400 });
+    }
+
+    // Save order into the database
+    const newOrder = insertOrder({
       customerName,
       phone,
       email: email || '',
       address,
-      city: city || (deliveryZone === 'inside_narayanganj' || deliveryZone === 'college_road_pickup' ? 'Narayanganj' : 'Outside Narayanganj'),
-      deliveryZone,
+      city: city || (deliveryZone === 'outside_narayanganj' ? 'Outside Narayanganj' : 'Narayanganj'),
+      deliveryZone: deliveryZone || 'inside_narayanganj',
       deliveryFee: Number(deliveryFee) || (deliveryZone === 'college_road_pickup' ? 20 : deliveryZone === 'inside_narayanganj' ? 60 : 120),
-      paymentMethod,
+      paymentMethod: paymentMethod || 'cod',
       trxId: trxId || '',
       notes: notes || '',
       items,
-      subtotal: Number(subtotal),
-      total: Number(total),
-    };
+      subtotal: Number(subtotal) || 0,
+      total: Number(total) || 0,
+    });
 
-    // 1. Decrement stock in products.json
-    try {
-      if (fs.existsSync(productsFilePath)) {
-        const rawProducts = fs.readFileSync(productsFilePath, 'utf8');
-        const products = JSON.parse(rawProducts);
-        
-        items.forEach((orderedItem: OrderItem) => {
-          const match = products.find((p: any) => p.id === orderedItem.id);
-          if (match && typeof match.stock === 'number') {
-            match.stock = Math.max(0, match.stock - orderedItem.quantity);
-          }
-        });
+    // Dispatch automated confirmation emails to BOTH business (shajghuri@gmail.com) and customer
+    dispatchOrderEmails(newOrder).catch((err) => {
+      console.warn('[Order Notification] Dual email dispatch warning:', err?.message);
+    });
 
-        fs.writeFileSync(productsFilePath, JSON.stringify(products, null, 2), 'utf8');
-      }
-    } catch (stockError) {
-      console.error('Failed to update stock in products.json', stockError);
-    }
+    const whatsappUrl = getWhatsAppStoreUrl(newOrder);
+    const emailUrl = getEmailStoreUrl(newOrder);
 
-    // 2. Save order
-    const orders = readOrders();
-    orders.unshift(newOrder);
-    writeOrders(orders);
-
-    return NextResponse.json({ success: true, order: newOrder }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating order:', error);
-    return NextResponse.json({ error: 'Failed to process order' }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: true,
+        order: newOrder,
+        notifications: {
+          whatsappUrl,
+          emailUrl,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error('Error creating order in database:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Failed to process order. Please try again.' },
+      { status: 500 }
+    );
   }
 }
 
@@ -140,20 +100,17 @@ export async function PATCH(request: Request) {
   try {
     const { id, status } = await request.json();
     if (!id || !status) {
-      return NextResponse.json({ error: 'Missing id or status' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing order id or status' }, { status: 400 });
     }
 
-    const orders = readOrders();
-    const index = orders.findIndex((o) => o.id === id);
-    if (index === -1) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    const updated = updateOrderStatus(id, status);
+    if (!updated) {
+      return NextResponse.json({ error: 'Order not found in database' }, { status: 404 });
     }
 
-    orders[index].status = status;
-    writeOrders(orders);
-
-    return NextResponse.json({ success: true, order: orders[index] });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
+    return NextResponse.json({ success: true, order: updated });
+  } catch (error: any) {
+    console.error('Failed to update order status:', error);
+    return NextResponse.json({ error: error?.message || 'Failed to update order status' }, { status: 500 });
   }
 }
