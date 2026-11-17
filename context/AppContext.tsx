@@ -24,6 +24,7 @@ interface AppContextType {
   setProducts: (products: Product[]) => void;
   refreshProducts: () => Promise<void>;
   decrementStock: (orderedItems: { id: number | string; quantity: number }[]) => void;
+  restoreStock: (cancelledItems: { id: number | string; quantity: number }[]) => void;
   cart: CartItem[];
   addToCart: (product: Product) => void;
   removeFromCart: (productId: number) => void;
@@ -62,6 +63,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const qty = Math.max(1, Number(match.quantity) || 1);
           const currentStock = typeof p.stock === 'number' ? p.stock : (parseInt(p.stock as any, 10) || 0);
           return { ...p, stock: Math.max(0, currentStock - qty) };
+        }
+        return p;
+      })
+    );
+  };
+
+  const restoreStock = (cancelledItems: { id: number | string; quantity: number }[]) => {
+    setProductsState((prevProducts) =>
+      prevProducts.map((p) => {
+        const match = cancelledItems.find((it) => Number(it.id) === Number(p.id));
+        if (match) {
+          const qty = Math.max(1, Number(match.quantity) || 1);
+          const currentStock = typeof p.stock === 'number' ? p.stock : (parseInt(p.stock as any, 10) || 0);
+          return { ...p, stock: currentStock + qty };
         }
         return p;
       })
@@ -161,6 +176,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setProducts,
         refreshProducts,
         decrementStock,
+        restoreStock,
         cart,
         addToCart,
         removeFromCart,

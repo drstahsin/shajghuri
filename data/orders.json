@@ -23,7 +23,8 @@
     "total": 240,
     "id": "SG-865286",
     "createdAt": "2026-11-17T07:20:04.472Z",
-    "status": "Pending"
+    "status": "Pending",
+    "stockDeducted": true
   },
   {
     "customerName": "tahsin",

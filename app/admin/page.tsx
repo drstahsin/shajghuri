@@ -50,7 +50,7 @@ function getSafePreviewUrl(url: string): string {
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  const { products, setProducts } = useAppContext();
+  const { products, setProducts, refreshProducts, restoreStock, decrementStock } = useAppContext();
   
   const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
   const [search, setSearch] = useState("");
@@ -174,6 +174,7 @@ export default function AdminDashboard() {
 
   const handleOrderStatusUpdate = async (orderId: string, newStatus: Order["status"]) => {
     try {
+      const currentOrder = orders.find(o => o.id === orderId);
       const res = await fetch("/api/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -181,6 +182,30 @@ export default function AdminDashboard() {
       });
       if (res.ok) {
         setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+
+        // Optimistically update stock in React context for instant UI responsiveness
+        if (currentOrder && currentOrder.items) {
+          if (newStatus === "Cancelled" && currentOrder.status !== "Cancelled") {
+            restoreStock(currentOrder.items);
+          } else if (currentOrder.status === "Cancelled" && newStatus !== "Cancelled") {
+            decrementStock(currentOrder.items);
+          }
+        }
+
+        // Re-sync catalog with the server so the archive tab is guaranteed consistent
+        await refreshProducts();
+
+        // Update local storage backup
+        try {
+          const backupRaw = localStorage.getItem("shajghuri_orders_backup");
+          if (backupRaw) {
+            const backupList = JSON.parse(backupRaw);
+            if (Array.isArray(backupList)) {
+              const updatedList = backupList.map((o: any) => o.id === orderId ? { ...o, status: newStatus } : o);
+              localStorage.setItem("shajghuri_orders_backup", JSON.stringify(updatedList));
+            }
+          }
+        } catch {}
       }
     } catch (err) {
       console.error("Failed to update status:", err);

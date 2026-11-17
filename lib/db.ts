@@ -27,6 +27,7 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   total: number;
+  stockDeducted?: boolean;
 }
 
 // In-memory fallback cache
@@ -113,6 +114,37 @@ export function getOrderById(id: string): Order | null {
   return orders.find(o => o.id === id) || null;
 }
 
+export function adjustProductStock(items: OrderItem[], mode: 'decrement' | 'restore') {
+  try {
+    const productsPath = path.join(process.cwd(), 'data', 'products.json');
+    if (!fs.existsSync(productsPath)) return;
+    const raw = fs.readFileSync(productsPath, 'utf8');
+    const products = JSON.parse(raw);
+    if (!Array.isArray(products)) return;
+
+    let modified = false;
+    items.forEach(it => {
+      const match = products.find((p: any) => Number(p.id) === Number(it.id));
+      if (match) {
+        const qty = Math.max(1, Number(it.quantity) || 1);
+        const currentStock = typeof match.stock === 'number' ? match.stock : (parseInt(match.stock, 10) || 0);
+        if (mode === 'decrement') {
+          match.stock = Math.max(0, currentStock - qty);
+        } else {
+          match.stock = currentStock + qty;
+        }
+        modified = true;
+      }
+    });
+
+    if (modified) {
+      fs.writeFileSync(productsPath, JSON.stringify(products, null, 2), 'utf8');
+    }
+  } catch (stockErr) {
+    console.warn(`[DB] Stock ${mode} warning:`, stockErr);
+  }
+}
+
 export function insertOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'status'> & { id?: string }): Order {
   const orders = getAllOrders();
   const orderId = orderData.id || `SG-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -135,50 +167,74 @@ export function insertOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'status'
     items: orderData.items || [],
     subtotal: Number(orderData.subtotal) || 0,
     total: Number(orderData.total) || 0,
+    stockDeducted: true,
   };
 
   orders.unshift(newOrder);
   saveOrders(orders);
 
   // Decrement product stock in products.json if present
-  try {
-    const productsPath = path.join(process.cwd(), 'data', 'products.json');
-    if (fs.existsSync(productsPath)) {
-      const raw = fs.readFileSync(productsPath, 'utf8');
-      const products = JSON.parse(raw);
-      if (Array.isArray(products)) {
-        newOrder.items.forEach(it => {
-          const match = products.find((p: any) => Number(p.id) === Number(it.id));
-          if (match) {
-            const qty = Math.max(1, Number(it.quantity) || 1);
-            const currentStock = typeof match.stock === 'number' ? match.stock : (parseInt(match.stock, 10) || 0);
-            match.stock = Math.max(0, currentStock - qty);
-          }
-        });
-        fs.writeFileSync(productsPath, JSON.stringify(products, null, 2), 'utf8');
-      }
-    }
-  } catch (stockErr) {
-    console.warn('[DB] Stock decrement warning:', stockErr);
-  }
+  adjustProductStock(newOrder.items, 'decrement');
 
   return newOrder;
 }
 
-export function updateOrderStatus(id: string, status: Order['status']): Order | null {
+export function updateOrderStatus(id: string, newStatus: Order['status']): Order | null {
   const orders = getAllOrders();
   const idx = orders.findIndex(o => o.id === id);
   if (idx === -1) return null;
 
-  orders[idx].status = status;
+  const currentOrder = orders[idx];
+  const oldStatus = currentOrder.status;
+
+  if (oldStatus === newStatus) {
+    return currentOrder;
+  }
+
+  // Determine whether stock was currently deducted for this order.
+  // If stockDeducted is explicitly defined, respect it.
+  // Otherwise, default to true unless oldStatus is already Cancelled.
+  const wasDeducted = currentOrder.stockDeducted !== undefined
+    ? currentOrder.stockDeducted
+    : (oldStatus !== 'Cancelled');
+
+  // Case 1: Transitioning to 'Cancelled' -> restore stock to its original amount
+  if (newStatus === 'Cancelled' && wasDeducted) {
+    adjustProductStock(currentOrder.items, 'restore');
+    currentOrder.stockDeducted = false;
+  }
+  // Case 2: Transitioning from 'Cancelled' back to an active status -> re-deduct stock
+  else if (oldStatus === 'Cancelled' && newStatus !== 'Cancelled' && !wasDeducted) {
+    adjustProductStock(currentOrder.items, 'decrement');
+    currentOrder.stockDeducted = true;
+  }
+  // Case 3: Transitioning to 'Confirmed' if stock was never previously deducted
+  else if (newStatus === 'Confirmed' && !wasDeducted) {
+    adjustProductStock(currentOrder.items, 'decrement');
+    currentOrder.stockDeducted = true;
+  }
+
+  currentOrder.status = newStatus;
   saveOrders(orders);
-  return orders[idx];
+  return currentOrder;
 }
 
 export function deleteOrder(id: string): boolean {
   const orders = getAllOrders();
+  const idx = orders.findIndex(o => o.id === id);
+  if (idx === -1) return false;
+
+  const orderToDelete = orders[idx];
+  const wasDeducted = orderToDelete.stockDeducted !== undefined
+    ? orderToDelete.stockDeducted
+    : (orderToDelete.status !== 'Cancelled');
+
+  // If order was deducted and is deleted, restore stock
+  if (wasDeducted) {
+    adjustProductStock(orderToDelete.items, 'restore');
+  }
+
   const filtered = orders.filter(o => o.id !== id);
-  if (filtered.length === orders.length) return false;
   saveOrders(filtered);
   return true;
 }
