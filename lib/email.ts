@@ -14,9 +14,11 @@ function escapeHtml(value: string | number): string {
 
 function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
   const zoneLabel = getDeliveryZoneLabel(order.deliveryZone);
-  const paymentLabel = order.paymentMethod === 'cod'
-    ? 'Cash on Delivery (Pay upon delivery)'
-    : `${order.paymentMethod.toUpperCase()} Personal / Send Money`;
+  const paymentLabel = order.paymentPlan === 'delivery_fee_advance_cod_balance'
+    ? `${order.paymentMethod.toUpperCase()} delivery-fee advance (transaction must be verified); item subtotal due in cash on delivery`
+    : order.paymentMethod === 'cod'
+      ? 'Cash on Delivery (Pay upon delivery)'
+      : `${order.paymentMethod.toUpperCase()} Personal / Send Money`;
 
   const itemsRows = order.items
     .map(
@@ -43,7 +45,7 @@ function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
   <html>
   <head>
     <meta charset="utf-8">
-    <title>${isForCustomer ? `Order Confirmation #${escapeHtml(order.id)}` : `New Store Order #${escapeHtml(order.id)}`}</title>
+    <title>${isForCustomer ? `${order.paymentPlan === 'delivery_fee_advance_cod_balance' ? 'Order Received' : 'Order Confirmation'} #${escapeHtml(order.id)}` : `New Store Order #${escapeHtml(order.id)}`}</title>
   </head>
   <body style="margin: 0; padding: 0; background-color: #faf8f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
     <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #faf8f5; padding: 24px 12px;">
@@ -74,7 +76,9 @@ function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
                 </p>
                 <p style="margin: 4px 0 0; color: #44403c; font-size: 12px;">
                   ${isForCustomer 
-                    ? 'Our team will contact you to confirm your order and delivery details.'
+                    ? order.paymentPlan === 'delivery_fee_advance_cod_balance'
+                      ? 'Our team will verify your delivery-fee transaction before confirming your order.'
+                      : 'Our team will contact you to confirm your order and delivery details.'
                     : `Customer ${escapeHtml(order.customerName)} (${escapeHtml(order.phone)}) placed a new order via the website.`
                   }
                 </p>
@@ -116,6 +120,7 @@ function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
                       <p style="margin: 4px 0 0; font-size: 12px; color: #57534e;">
                         <strong>Payment:</strong> ${paymentLabel}
                       </p>
+                      ${order.paymentSenderNumber ? `<p style="margin: 4px 0 0; font-size: 12px; color: #57534e;"><strong>Paid from:</strong> ${escapeHtml(order.paymentSenderNumber)}</p>` : ''}
                       ${order.trxId ? `<p style="margin: 4px 0 0; font-size: 12px; color: #be123c; font-family: monospace; font-weight: 600;"><strong>TrxID:</strong> ${escapeHtml(order.trxId)}</p>` : ''}
                       ${order.notes ? `<p style="margin: 6px 0 0; font-size: 11px; color: #78716c; font-style: italic;"><strong>Note:</strong> "${escapeHtml(order.notes)}"</p>` : ''}
                     </td>
@@ -154,15 +159,23 @@ function generateHtmlReceipt(order: Order, isForCustomer: boolean): string {
                     </tr>
                     <tr>
                       <td colspan="3" style="padding: 4px 8px; text-align: right; font-size: 12px; color: #78716c;">
-                        Delivery Charge:
+                        ${order.paymentPlan === 'delivery_fee_advance_cod_balance' ? 'Delivery Fee Advance to Verify:' : 'Delivery Charge:'}
                       </td>
                       <td style="padding: 4px 8px; text-align: right; font-size: 13px; color: #1c1917; font-weight: 600;">
                         ৳${order.deliveryFee}
                       </td>
                     </tr>
+                    ${order.paymentPlan === 'delivery_fee_advance_cod_balance' ? `<tr>
+                      <td colspan="3" style="padding: 4px 8px; text-align: right; font-size: 12px; color: #78716c;">
+                        Balance Due in Cash on Delivery:
+                      </td>
+                      <td style="padding: 4px 8px; text-align: right; font-size: 13px; color: #1c1917; font-weight: 600;">
+                        ৳${order.subtotal}
+                      </td>
+                    </tr>` : ''}
                     <tr style="border-top: 1px solid #1c1917;">
                       <td colspan="3" style="padding: 10px 8px; text-align: right; font-size: 14px; color: #1c1917; font-weight: 700;">
-                        Total Payable:
+                        ${order.paymentPlan === 'delivery_fee_advance_cod_balance' ? 'Total Order Value:' : 'Total Payable:'}
                       </td>
                       <td style="padding: 10px 8px; text-align: right; font-size: 18px; color: #e11d48; font-weight: 800;">
                         ৳${order.total}
@@ -272,7 +285,9 @@ export async function dispatchOrderEmails(order: Order): Promise<EmailDispatchRe
       await transporter.sendMail({
         from: senderAddress,
         to: order.email.trim(),
-        subject: `✨ Order Confirmation #${order.id} - Thank You for Shopping with Shajghuri!`,
+        subject: order.paymentPlan === 'delivery_fee_advance_cod_balance'
+          ? `Order Received #${order.id} - Delivery Fee Verification Pending`
+          : `✨ Order Confirmation #${order.id} - Thank You for Shopping with Shajghuri!`,
         html: customerHtml,
         text: `Thank you for your order #${order.id}!\nTotal: ৳${order.total}\nWe will deliver to: ${order.address}\nHotline: ${STORE_PHONE}`,
       });

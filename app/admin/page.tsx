@@ -647,16 +647,21 @@ export default function AdminDashboard() {
                         <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end">
                           <div className="text-right">
                             <p className="text-[10px] uppercase tracking-widest text-stone">
-                              {ord.paymentMethod === "cod" ? "Cash on Delivery" : ord.paymentMethod.toUpperCase()}
+                              {ord.paymentPlan === "delivery_fee_advance_cod_balance"
+                                ? `${ord.paymentMethod.toUpperCase()} fee advance · verify`
+                                : ord.paymentMethod === "cod" ? "Cash on Delivery" : ord.paymentMethod.toUpperCase()}
                             </p>
-                            <p className="font-serif text-xl text-ink">৳{ord.total}</p>
+                            <p className="font-serif text-xl text-ink">৳{ord.paymentPlan === "delivery_fee_advance_cod_balance" ? ord.deliveryFee : ord.total}</p>
+                            {ord.paymentPlan === "delivery_fee_advance_cod_balance" && <p className="text-[10px] text-stone">৳{ord.subtotal} cash due on delivery</p>}
                           </div>
 
                           <div className="flex items-center gap-2">
                             {/* WhatsApp Customer Button */}
                             <a
                               href={`https://wa.me/88${ord.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                                `Hello ${ord.customerName}! This is Shajghuri Atelier. We are confirming your order #${ord.id} for ৳${ord.total} to: ${ord.address}.`
+                                ord.paymentPlan === "delivery_fee_advance_cod_balance"
+                                  ? `Hello ${ord.customerName}! We received order #${ord.id}. We will verify your ৳${ord.deliveryFee} ${ord.paymentMethod.toUpperCase()} delivery-fee transfer before confirming it. Your remaining ৳${ord.subtotal} is due in cash on delivery.`
+                                  : `Hello ${ord.customerName}! This is Shajghuri Atelier. We are confirming your order #${ord.id} for ৳${ord.total} to: ${ord.address}.`
                               )}`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -672,10 +677,10 @@ export default function AdminDashboard() {
                               <button
                                 onClick={() => handleOrderStatusUpdate(ord.id, "Confirmed")}
                                 className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] uppercase font-bold tracking-wider rounded flex items-center gap-1 transition-all shadow-xs cursor-pointer"
-                                title="One-click order confirmation"
+                                title={ord.paymentPlan === "delivery_fee_advance_cod_balance" ? "Verify the delivery-fee transaction first, then confirm" : "Confirm order"}
                               >
                                 <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                                <span>Confirm</span>
+                                <span>{ord.paymentPlan === "delivery_fee_advance_cod_balance" ? "Verify & Confirm" : "Confirm"}</span>
                               </button>
                             )}
 
@@ -721,6 +726,14 @@ export default function AdminDashboard() {
                             <div>
                               <p className="text-[10px] uppercase tracking-widest font-medium text-ink mb-1">Acquisition Timeline & Payment</p>
                               <p className="font-light text-ink">Date: {new Date(ord.createdAt).toLocaleString()}</p>
+                              {ord.paymentPlan === "delivery_fee_advance_cod_balance" && (
+                                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-950">
+                                  <p className="font-semibold">Verify the wallet payment before confirming this order.</p>
+                                  <p className="mt-1">Advance to verify: ৳{ord.deliveryFee} via {ord.paymentMethod.toUpperCase()}</p>
+                                  <p>Remaining cash due on delivery: ৳{ord.subtotal}</p>
+                                  {ord.paymentSenderNumber && <p>Customer paid from: {ord.paymentSenderNumber}</p>}
+                                </div>
+                              )}
                               {ord.trxId && (
                                 <p className="font-mono text-xs text-meenakari mt-1 select-all">
                                   Trx Info: {ord.trxId}

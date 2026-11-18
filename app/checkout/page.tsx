@@ -7,8 +7,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAppContext } from "@/context/AppContext";
 import type { Order } from "@/lib/db";
-import { ShieldCheck, Truck, CreditCard, CheckCircle2, ChevronRight, Lock, Mail, MessageCircle, Sparkles, ExternalLink, ArrowRight, RotateCcw } from "lucide-react";
-import { STORE_WHATSAPP, STORE_EMAIL, formatWhatsAppOrderMessage, getDeliveryZoneLabel } from "@/lib/notifications";
+import { ShieldCheck, CreditCard, CheckCircle2, ChevronRight, Lock, Mail, MessageCircle, Sparkles, ExternalLink, ArrowRight, RotateCcw } from "lucide-react";
+import { STORE_BKASH_NAGAD, STORE_WHATSAPP, STORE_EMAIL, formatWhatsAppOrderMessage, getDeliveryZoneLabel } from "@/lib/notifications";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -20,7 +20,7 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("Narayanganj");
   const [deliveryZone, setDeliveryZone] = useState<"inside_narayanganj" | "college_road_pickup" | "outside_narayanganj">("inside_narayanganj");
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "bkash" | "nagad">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"bkash" | "nagad">("bkash");
   const [senderNumber, setSenderNumber] = useState("");
   const [trxId, setTrxId] = useState("");
   const [notes, setNotes] = useState("");
@@ -50,8 +50,13 @@ export default function CheckoutPage() {
       return;
     }
 
-    if ((paymentMethod === "bkash" || paymentMethod === "nagad") && !trxId.trim()) {
-      setErrorMessage(`Please enter the ${paymentMethod === "bkash" ? "bKash" : "Nagad"} Transaction ID (TrxID) after payment.`);
+    if (!senderNumber.trim()) {
+      setErrorMessage("Please enter the mobile number you used to pay the delivery fee.");
+      return;
+    }
+
+    if (!trxId.trim()) {
+      setErrorMessage(`Please enter the ${paymentMethod === "bkash" ? "bKash" : "Nagad"} transaction ID for your delivery-fee payment.`);
       return;
     }
 
@@ -67,7 +72,8 @@ export default function CheckoutPage() {
         deliveryZone,
         deliveryFee,
         paymentMethod,
-        trxId: trxId.trim() ? `${paymentMethod.toUpperCase()}: ${trxId.trim()} (${senderNumber || 'N/A'})` : '',
+        senderNumber: senderNumber.trim(),
+        trxId: trxId.trim(),
         notes: notes.trim(),
         items: cart.map(item => ({
           id: item.id,
@@ -133,7 +139,7 @@ export default function CheckoutPage() {
 
             <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3.5 py-1 rounded-full mb-3 border border-emerald-200">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Order Received & Stock Updated</span>
+              <span>Order Received · Delivery Fee Verification Pending</span>
             </div>
 
             <h1 className="font-cherry text-3xl sm:text-4xl md:text-5xl font-bold text-zinc-950 mb-2">
@@ -161,11 +167,11 @@ export default function CheckoutPage() {
                     What Happens Next
                   </h2>
                   <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                    Order Received
+                    Delivery Fee Pending Verification
                   </span>
                 </div>
                 <p className="text-xs md:text-sm text-zinc-700 leading-relaxed font-normal">
-                  Our team will contact you to confirm your order and delivery details. Keep your order reference for follow-up:
+                  Our team will verify your delivery-fee payment before confirming the order. Keep your order reference for follow-up:
                 </p>
                 <div className="mt-2.5 inline-flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-emerald-300 shadow-2xs">
                   <Mail className="w-4 h-4 text-emerald-600" />
@@ -247,9 +253,10 @@ export default function CheckoutPage() {
               <div>
                 <span className="font-bold text-zinc-900 block mb-1">Payment & Total:</span>
                 <p>
-                  Method: <span className="font-medium text-zinc-900 uppercase">{activeOrder.paymentMethod}</span><br />
-                  Delivery: ৳{activeOrder.deliveryFee} ({getDeliveryZoneLabel(activeOrder.deliveryZone)})<br />
-                  <span className="font-bold text-rose-600 text-base mt-1 inline-block">Grand Total: ৳{activeOrder.total}</span>
+                  Fee payment: <span className="font-medium text-zinc-900 uppercase">{activeOrder.paymentMethod}</span><br />
+                  Delivery fee to verify: ৳{activeOrder.deliveryFee} ({getDeliveryZoneLabel(activeOrder.deliveryZone)})<br />
+                  Jewelry balance due in cash on delivery: ৳{activeOrder.subtotal}<br />
+                  <span className="font-bold text-rose-600 text-base mt-1 inline-block">Total order value: ৳{activeOrder.total}</span>
                 </p>
               </div>
             </div>
@@ -322,7 +329,7 @@ export default function CheckoutPage() {
             Secure Checkout
           </h1>
           <p className="text-xs md:text-sm text-zinc-500 mt-1">
-            Fill in your delivery address to confirm your jewelry order with Cash on Delivery or bKash / Nagad.
+              Pay the delivery fee by bKash or Nagad to submit your order. The jewelry subtotal is due in cash when it arrives.
           </p>
         </div>
 
@@ -521,29 +528,7 @@ export default function CheckoutPage() {
               </h2>
 
               <div className="space-y-3">
-                {/* Cash on Delivery */}
-                <label
-                  onClick={() => setPaymentMethod("cod")}
-                  className={`p-4 rounded-xl block cursor-pointer border transition-all ${
-                    paymentMethod === "cod"
-                      ? "border-zinc-950 bg-rose-50/40 ring-1 ring-zinc-950"
-                      : "border-zinc-200 bg-white hover:border-zinc-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-zinc-900 flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-emerald-600" /> Cash on Delivery (COD)
-                    </span>
-                    <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
-                      Pay on Delivery
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-zinc-500 font-light">
-                    Pay our delivery courier agent in cash after inspecting your packaged ornaments.
-                  </p>
-                </label>
-
-                {/* bKash */}
+                {/* bKash delivery-fee advance */}
                 <label
                   onClick={() => setPaymentMethod("bkash")}
                   className={`p-4 rounded-xl block cursor-pointer border transition-all ${
@@ -554,18 +539,18 @@ export default function CheckoutPage() {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold text-zinc-900 flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-rose-600" /> bKash Personal / Send Money
+                      <CreditCard className="w-4 h-4 text-rose-600" /> bKash delivery-fee payment
                     </span>
                     <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded">
-                      Instant Confirmation
+                      ৳{deliveryFee} now
                     </span>
                   </div>
                   <p className="text-[11px] text-zinc-500 font-light">
-                    Send payment via bKash to our official number for fast priority dispatch.
+                    Send only the delivery fee now. Pay the jewelry subtotal in cash to the courier on delivery.
                   </p>
                 </label>
 
-                {/* Nagad */}
+                {/* Nagad delivery-fee advance */}
                 <label
                   onClick={() => setPaymentMethod("nagad")}
                   className={`p-4 rounded-xl block cursor-pointer border transition-all ${
@@ -576,67 +561,65 @@ export default function CheckoutPage() {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold text-zinc-900 flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-amber-600" /> Nagad Payment
+                      <CreditCard className="w-4 h-4 text-amber-600" /> Nagad delivery-fee payment
                     </span>
                     <span className="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
-                      Send Money
+                      ৳{deliveryFee} now
                     </span>
                   </div>
                   <p className="text-[11px] text-zinc-500 font-light">
-                    Send payment through Nagad to confirm your jewelry acquisition.
+                    Send only the delivery fee now. Pay the jewelry subtotal in cash to the courier on delivery.
                   </p>
                 </label>
               </div>
 
-              {/* bKash / Nagad Details Form */}
-              {(paymentMethod === "bkash" || paymentMethod === "nagad") && (
-                <div className="mt-4 p-4 rounded-xl bg-zinc-50 border border-zinc-200 space-y-4">
-                  <div className="border-b border-zinc-200 pb-3">
-                    <p className="text-xs font-bold text-zinc-900">
-                      Send <span className="text-rose-600 font-bold">৳{grandTotal}</span> to our official number:
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="font-mono text-lg font-bold text-zinc-950 select-all tracking-wide">
-                        01617398085
-                      </span>
-                      <span className="text-[10px] bg-rose-100 text-rose-700 font-semibold px-2 py-0.5 rounded">
-                        bKash & Nagad Personal
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-zinc-500 mt-1">
-                      Use &quot;Send Money&quot; to <strong className="text-zinc-800">01617398085</strong>. For quick assistance, call hotline <a href="tel:+8801567845417" className="underline font-semibold text-zinc-800">01567-845417</a>.
-                    </p>
+              {/* Required delivery-fee advance */}
+              <div className="mt-4 p-4 rounded-xl bg-zinc-50 border border-zinc-200 space-y-4">
+                <div className="border-b border-zinc-200 pb-3">
+                  <p className="text-xs font-bold text-zinc-900">
+                    Send <span className="text-rose-600 font-bold">৳{deliveryFee} only</span> by {paymentMethod === "bkash" ? "bKash" : "Nagad"} to:
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="font-mono text-lg font-bold text-zinc-950 select-all tracking-wide">{STORE_BKASH_NAGAD}</span>
+                    <span className="text-[10px] bg-rose-100 text-rose-700 font-semibold px-2 py-0.5 rounded">Send Money</span>
                   </div>
+                  <p className="text-[11px] text-zinc-600 mt-2">
+                    Your order stays pending until we verify this payment. The jewelry subtotal of <strong>৳{cartTotal}</strong> is paid in cash to the courier on delivery.
+                  </p>
+                  <p className="text-[11px] text-zinc-500 mt-1">
+                    For assistance, call hotline <a href="tel:+8801567845417" className="underline font-semibold text-zinc-800">01567-845417</a>.
+                  </p>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                        Your {paymentMethod === "bkash" ? "bKash" : "Nagad"} Number
-                      </label>
-                      <input
-                        type="tel"
-                        placeholder="e.g. 018XXXXXXXX"
-                        value={senderNumber}
-                        onChange={(e) => setSenderNumber(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-mono focus:outline-none focus:border-rose-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-700 mb-1">
-                        Transaction ID (TrxID) <span className="text-rose-600">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. 9J4K2L1M"
-                        value={trxId}
-                        onChange={(e) => setTrxId(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-mono uppercase focus:outline-none focus:border-rose-500"
-                      />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 mb-1">
+                      Number you paid from <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g. 01XXXXXXXXX"
+                      value={senderNumber}
+                      onChange={(e) => setSenderNumber(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-mono focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 mb-1">
+                      Delivery-fee transaction ID <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter the ID from your payment receipt"
+                      value={trxId}
+                      onChange={(e) => setTrxId(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-mono uppercase focus:outline-none focus:border-rose-500"
+                    />
                   </div>
                 </div>
-              )}
+              </div>
             </div>
 
           </div>
@@ -672,12 +655,12 @@ export default function CheckoutPage() {
               {/* Price Calculations */}
               <div className="pt-4 border-t border-zinc-100 space-y-2 text-xs">
                 <div className="flex justify-between text-zinc-600">
-                  <span>Subtotal</span>
+                  <span>Jewelry subtotal (cash on delivery)</span>
                   <span className="font-semibold text-zinc-900">৳{cartTotal}</span>
                 </div>
                 <div className="flex justify-between text-zinc-600">
                   <span>
-                    Delivery (
+                    Delivery fee (pay now) (
                     {deliveryZone === "college_road_pickup"
                       ? "College Rd Pickup"
                       : deliveryZone === "inside_narayanganj"
@@ -688,7 +671,7 @@ export default function CheckoutPage() {
                   <span className="font-semibold text-zinc-900">৳{deliveryFee}</span>
                 </div>
                 <div className="flex justify-between text-zinc-950 pt-3 border-t border-zinc-200 text-base font-bold">
-                  <span>Total Payable</span>
+                  <span>Total order value</span>
                   <span className="text-xl text-rose-600 font-bold">৳{grandTotal}</span>
                 </div>
               </div>
@@ -712,7 +695,7 @@ export default function CheckoutPage() {
                 }`}
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>{isSubmitting ? "Confirming Order..." : `Confirm Order (৳${grandTotal})`}</span>
+                <span>{isSubmitting ? "Submitting Order..." : `Submit Order · Pay ৳${deliveryFee} Now`}</span>
               </button>
 
               {/* Trust Notes */}

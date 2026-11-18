@@ -20,9 +20,11 @@ export function getDeliveryZoneLabel(zone: string): string {
 
 export function formatWhatsAppOrderMessage(order: Order): string {
   const zoneLabel = getDeliveryZoneLabel(order.deliveryZone);
-  const paymentLabel = order.paymentMethod === 'cod'
-    ? 'Cash on Delivery'
-    : `${order.paymentMethod.toUpperCase()} (Personal / Send Money)`;
+  const paymentLabel = order.paymentPlan === 'delivery_fee_advance_cod_balance'
+    ? `${order.paymentMethod.toUpperCase()} delivery-fee advance (customer-reported; verify before confirming). Item subtotal is COD.`
+    : order.paymentMethod === 'cod'
+      ? 'Cash on Delivery'
+      : `${order.paymentMethod.toUpperCase()} (Personal / Send Money)`;
 
   const itemsList = order.items
     .map((item, idx) => `  ${idx + 1}. ${item.name} (x${item.quantity}) - ৳${item.price * item.quantity}`)
@@ -35,15 +37,15 @@ export function formatWhatsAppOrderMessage(order: Order): string {
 ${order.email ? `📧 *Email:* ${order.email}\n` : ''}📍 *Delivery Address:* ${order.address}
 🏙️ *City/Area:* ${order.city}
 🚚 *Delivery Zone:* ${zoneLabel}
-💳 *Payment:* ${paymentLabel}${order.trxId ? `\n🧾 *Transaction ID:* ${order.trxId}` : ''}${order.notes ? `\n📝 *Notes:* ${order.notes}` : ''}
+💳 *Payment:* ${paymentLabel}${order.paymentSenderNumber ? `\n📱 *Paid From:* ${order.paymentSenderNumber}` : ''}${order.trxId ? `\n🧾 *Transaction ID:* ${order.trxId}` : ''}${order.notes ? `\n📝 *Notes:* ${order.notes}` : ''}
 
 🛒 *Ordered Ornaments:*
 ${itemsList}
 
 ---------------------------------------
-💰 *Subtotal:* ৳${order.subtotal}
-🚚 *Delivery Fee:* ৳${order.deliveryFee}
-✨ *Total Payable:* ৳${order.total}
+💰 *Jewelry Subtotal:* ৳${order.subtotal}${order.paymentPlan === 'delivery_fee_advance_cod_balance' ? ' (cash due on delivery)' : ''}
+🚚 *Delivery Fee:* ৳${order.deliveryFee}${order.paymentPlan === 'delivery_fee_advance_cod_balance' ? ' (advance to verify)' : ''}
+${order.paymentPlan === 'delivery_fee_advance_cod_balance' ? `💵 *Balance Due on Delivery:* ৳${order.subtotal}\n` : ''}✨ *Total Order Value:* ৳${order.total}
 ---------------------------------------
 Shajghuri Online Store • Order Date: ${new Date(order.createdAt).toLocaleDateString()}`;
 }

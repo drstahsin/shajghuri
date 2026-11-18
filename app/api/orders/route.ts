@@ -14,13 +14,14 @@ type CheckoutBody = {
   city?: unknown;
   deliveryZone?: unknown;
   paymentMethod?: unknown;
+  senderNumber?: unknown;
   trxId?: unknown;
   notes?: unknown;
   items?: unknown;
 };
 
 const deliveryZones: NewOrderInput['deliveryZone'][] = ['inside_narayanganj', 'outside_narayanganj', 'college_road_pickup'];
-const paymentMethods: NewOrderInput['paymentMethod'][] = ['cod', 'bkash', 'nagad'];
+const paymentMethods: NewOrderInput['paymentMethod'][] = ['bkash', 'nagad'];
 
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: 'Invalid request origin.' }, { status: 403 });
@@ -39,16 +40,19 @@ export async function POST(request: Request) {
   const city = cleanText(body.city, 2, 80);
   const deliveryZone = body.deliveryZone;
   const paymentMethod = body.paymentMethod;
+  const paymentSenderNumber = cleanText(body.senderNumber, 8, 24);
   const trxId = cleanText(body.trxId ?? '', 0, 100) || '';
   const notes = cleanText(body.notes ?? '', 0, 500) || '';
 
   if (!customerName || !phone || !/^[\d\s()+.-]{8,24}$/.test(phone) || phone.replace(/\D/g, '').length < 8 || phone.replace(/\D/g, '').length > 15
     || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !address || !city
     || !deliveryZones.includes(deliveryZone as NewOrderInput['deliveryZone'])
+    || !paymentSenderNumber || !/^[\d\s()+.-]{8,24}$/.test(paymentSenderNumber)
+    || paymentSenderNumber.replace(/\D/g, '').length < 8 || paymentSenderNumber.replace(/\D/g, '').length > 15
     || !paymentMethods.includes(paymentMethod as NewOrderInput['paymentMethod'])) {
     return NextResponse.json({ error: 'Please provide valid contact, delivery, and payment details.' }, { status: 400 });
   }
-  if (paymentMethod !== 'cod' && trxId.length < 3) {
+  if (trxId.length < 3) {
     return NextResponse.json({ error: 'Please provide a valid payment transaction reference.' }, { status: 400 });
   }
 
@@ -64,6 +68,7 @@ export async function POST(request: Request) {
       city,
       deliveryZone: deliveryZone as NewOrderInput['deliveryZone'],
       paymentMethod: paymentMethod as NewOrderInput['paymentMethod'],
+      paymentSenderNumber,
       trxId,
       notes,
       requestedItems,

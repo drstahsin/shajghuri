@@ -60,7 +60,7 @@ export default function OrderSuccessPage() {
 
           <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3.5 py-1 rounded-full mb-3 border border-emerald-200">
             <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-            <span>Order Received & Stock Updated</span>
+            <span>{order?.paymentPlan === "delivery_fee_advance_cod_balance" ? "Delivery Fee Verification Pending" : "Order Received"}</span>
           </div>
 
           <h1 className="font-cherry text-3xl sm:text-4xl md:text-5xl font-bold text-zinc-950 mb-2">
@@ -83,11 +83,13 @@ export default function OrderSuccessPage() {
                   What Happens Next
                 </h3>
                 <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Order Received
+                  {order?.paymentPlan === "delivery_fee_advance_cod_balance" ? "Delivery Fee Pending Verification" : "Order Received"}
                 </span>
               </div>
               <p className="text-xs md:text-sm text-zinc-700 font-light leading-relaxed">
-                Our team will contact you to confirm the order and delivery details. We have your email address for order updates:
+                {order?.paymentPlan === "delivery_fee_advance_cod_balance"
+                  ? "We will verify your delivery-fee payment before confirming the order. We have your email for updates:"
+                  : "Our team will contact you to confirm the order and delivery details. We have your email address for order updates:"}
               </p>
               {order?.email && (
                 <div className="mt-2 inline-flex items-center gap-2 bg-white px-3.5 py-1.5 rounded-lg border border-emerald-200 shadow-2xs">
@@ -188,15 +190,26 @@ export default function OrderSuccessPage() {
                   <span>Payment Protocol</span>
                 </h4>
                 <p className="text-zinc-700 font-medium">
-                  {order.paymentMethod === "cod" ? "Cash on Delivery (Pay upon arrival)" : `${order.paymentMethod.toUpperCase()} (Personal / Send Money)`}
+                  {order.paymentPlan === "delivery_fee_advance_cod_balance"
+                    ? `${order.paymentMethod.toUpperCase()} delivery-fee advance · awaiting verification`
+                    : order.paymentMethod === "cod" ? "Cash on Delivery (Pay upon arrival)" : `${order.paymentMethod.toUpperCase()} (Personal / Send Money)`}
                 </p>
+                {order.paymentSenderNumber && <p className="text-zinc-600 text-[11px] mt-1">Paid from: {order.paymentSenderNumber}</p>}
                 {order.trxId && (
                   <p className="font-mono text-[11px] text-rose-700 font-bold mt-1">
                     TrxID: {order.trxId}
                   </p>
                 )}
                 <div className="mt-4 pt-3 border-t border-zinc-100 flex justify-between items-baseline">
-                  <span className="font-bold text-zinc-900 text-sm">Grand Total:</span>
+                  <span className="font-bold text-zinc-900 text-sm">{order.paymentPlan === "delivery_fee_advance_cod_balance" ? "Delivery fee to verify:" : "Delivery charge:"}</span>
+                  <span className="font-bold text-zinc-900">৳{order.deliveryFee}</span>
+                </div>
+                {order.paymentPlan === "delivery_fee_advance_cod_balance" && <div className="flex justify-between items-baseline">
+                  <span className="font-semibold text-zinc-700">Balance due in cash on delivery:</span>
+                  <span className="font-semibold text-zinc-900">৳{order.subtotal}</span>
+                </div>}
+                <div className="mt-3 pt-3 border-t border-zinc-100 flex justify-between items-baseline">
+                  <span className="font-bold text-zinc-900 text-sm">Total order value:</span>
                   <span className="text-xl font-bold text-rose-600">৳{order.total}</span>
                 </div>
               </div>
@@ -204,7 +217,7 @@ export default function OrderSuccessPage() {
           </div>
         ) : (
           <div className="bg-white p-6 md:p-8 rounded-2xl border border-zinc-200 shadow-sm mb-8 text-center text-xs text-zinc-500">
-            Order confirmed with reference <strong className="text-zinc-900">#{orderId}</strong>. You can reach out directly via WhatsApp or call <a href={`tel:+88${STORE_PHONE}`} className="underline font-semibold text-zinc-900">+{STORE_PHONE}</a>.
+            Order submitted with reference <strong className="text-zinc-900">#{orderId}</strong>. We will confirm after verifying the delivery-fee payment. You can reach us via WhatsApp or call <a href={`tel:+88${STORE_PHONE}`} className="underline font-semibold text-zinc-900">+{STORE_PHONE}</a>.
           </div>
         )}
 

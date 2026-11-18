@@ -25,6 +25,7 @@ Order confirmation and contact inquiry emails use SMTP. Set `EMAIL_USER` and `EM
 - Admin APIs require a short-lived, signed, `httpOnly`, `SameSite=Strict` session cookie.
 - Customer order details can be fetched only with the random access token returned at checkout; the token is kept in the browser tab's session storage.
 - Order totals and item prices come from the server catalog. Stock is checked and updated in the same PostgreSQL transaction as the order.
+- Customers pay the calculated delivery fee upfront by bKash or Nagad and provide the sender number and transaction ID. The order remains pending for manual wallet verification; the jewelry subtotal is due in cash on delivery.
 - Production order/catalog storage uses PostgreSQL. Local JSON order data is ignored by Git.
 - API requests are size-limited, validated, origin-checked for writes, and rate-limited. Production rate limits are stored in PostgreSQL.
 - Product images are restricted to local catalog assets. Standard security response headers are configured in `next.config.ts`.

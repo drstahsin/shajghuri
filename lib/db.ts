@@ -24,7 +24,10 @@ export interface Order {
   city: string;
   deliveryZone: 'inside_narayanganj' | 'outside_narayanganj' | 'college_road_pickup';
   deliveryFee: number;
+  /** For new orders, only the delivery fee is prepaid; old records may not have this field. */
+  paymentPlan?: 'delivery_fee_advance_cod_balance';
   paymentMethod: 'cod' | 'bkash' | 'nagad';
+  paymentSenderNumber?: string;
   trxId?: string;
   notes?: string;
   items: OrderItem[];
@@ -33,7 +36,9 @@ export interface Order {
   stockDeducted: boolean;
 }
 
-export type NewOrderInput = Omit<Order, 'id' | 'createdAt' | 'status' | 'items' | 'subtotal' | 'total' | 'deliveryFee' | 'stockDeducted'> & {
+export type NewOrderInput = Omit<Order, 'id' | 'createdAt' | 'status' | 'items' | 'subtotal' | 'total' | 'deliveryFee' | 'stockDeducted' | 'paymentPlan' | 'paymentSenderNumber' | 'paymentMethod'> & {
+  paymentMethod: 'bkash' | 'nagad';
+  paymentSenderNumber: string;
   requestedItems: { id: number; quantity: number }[];
 };
 
@@ -239,6 +244,7 @@ export async function createOrder(input: NewOrderInput): Promise<{ order: Order;
         id,
         createdAt,
         status: 'Pending',
+        paymentPlan: 'delivery_fee_advance_cod_balance',
         deliveryFee,
         items,
         subtotal,
@@ -277,6 +283,7 @@ export async function createOrder(input: NewOrderInput): Promise<{ order: Order;
         id,
         createdAt,
         status: 'Pending',
+        paymentPlan: 'delivery_fee_advance_cod_balance',
         deliveryFee,
         items,
         subtotal,
